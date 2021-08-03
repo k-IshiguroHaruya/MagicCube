@@ -10,6 +10,10 @@ namespace MagicCube
             builder.RegisterEntryPoint<CubePresenter>(Lifetime.Singleton);
             builder.Register<CubeModel>(Lifetime.Singleton);
             builder.RegisterComponentInHierarchy<CubeView>();
+
+            builder.RegisterEntryPoint<ScreenPresenter>(Lifetime.Singleton);
+            builder.Register<ScreenModel>(Lifetime.Singleton);
+            builder.RegisterComponentInHierarchy<ScreenView>();
         }
     }
 
