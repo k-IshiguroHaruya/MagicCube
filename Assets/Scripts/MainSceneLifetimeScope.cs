@@ -7,7 +7,9 @@ namespace MagicCube
     {
         protected override void Configure(IContainerBuilder builder)
         {
-            
+            builder.RegisterEntryPoint<CubePresenter>(Lifetime.Singleton);
+            builder.Register<CubeModel>(Lifetime.Singleton);
+            builder.RegisterComponentInHierarchy<CubeView>();
         }
     }
 
