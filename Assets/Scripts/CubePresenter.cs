@@ -34,6 +34,8 @@ namespace MagicCube
                 .ObserveRemove()
                 .Subscribe( eachCubes => cubeView.DestoryUnnecessaryCubes(eachCubes.Value) );
             
+            cubeView.onStartCubeViewTrigger()
+                .Subscribe( transform => cubeModel.SetParentCubeTransform(transform) );
             cubeView.onSliderValueChangedTrigger()
                 .Subscribe( size => cubeModel.SetCubeSize(size) );
             cubeView.onInitEachCubeControllerTrigger()
@@ -41,9 +43,9 @@ namespace MagicCube
             cubeView.onButtonDownOnEachCubeTrigger()
                 .Subscribe( eachCube => cubeModel.SetDruggingEachCube(eachCube) );
             cubeView.onChangedForRotatePlaneTrigger()
-                .Subscribe( planeData => cubeModel.SetEachCubesPlane(planeData) );
+                .Subscribe( planeData => cubeModel.SetEachCubesParentPlane(planeData) );
             cubeView.onFinishedPlaneRotateTrigger()
-                .Subscribe( parent => cubeModel.ReleaseEachCubesPlane(parent) );
+                .Subscribe( rotationNum => cubeModel.ReleaseEachCubesPlane(rotationNum) );
 
             screenModel.screenType
                 .Subscribe( screenType =>
