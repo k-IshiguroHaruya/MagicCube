@@ -26,14 +26,34 @@ namespace MagicCube
         {
             cubeModel.cubeSize
                 .SkipLatestValueOnSubscribe()
-                .Subscribe( size => cubeView.ChangeCubeSize(size) );
+                .Subscribe( size => cubeView.OnChangeCubeSize(size) );
+            cubeModel.druggingEachCube
+                .Subscribe( eachCube => cubeView.OnSetDruggingEachCube(eachCube) );
             
             cubeView.onSliderValueChangedTrigger()
                 .Subscribe( size => cubeModel.SetCubeSize(size) );
+            cubeView.onInitEachCubeControllerTrigger()
+                .Subscribe( eachCube => cubeModel.AddEachCubes(eachCube) );
+            cubeView.onButtonDownOnEachCubeTrigger()
+                .Subscribe( eachCube => cubeModel.SetDruggingEachCube(eachCube) );
+            cubeView.onChangedForRotatePlaneTrigger()
+                .Subscribe( planeData => cubeModel.SetEachCubesPlane(planeData) );
+            cubeView.onFinishedPlaneRotateTrigger()
+                .Subscribe( parent => cubeModel.ReleaseEachCubesPlane(parent) );
 
             screenModel.screenType
-                .Where( screenType => screenType == ScreenType.キューブサイズ調整画面 )
-                .Subscribe( _ => cubeView.InitCube() );
+                .Subscribe( screenType =>
+                {
+                    switch(screenType)
+                    {
+                        case ScreenType.キューブサイズ調整画面:
+                            cubeView.InitCube();
+                            break;
+                        case ScreenType.メイン画面:
+
+                            break;
+                    }
+                });
         }
     }
 }

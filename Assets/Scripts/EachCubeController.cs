@@ -6,7 +6,16 @@ namespace MagicCube
 {
     public class EachCubeController : MonoBehaviour
     {
-        public int order { get; private set;}
+        private Vector3 _posOnCube;
+        public Vector3 posOnCube { get => _posOnCube; }
+        
+        private int _order;
+        public int order { get => _order; }
+
+        public void SetPosOnCube(Vector3 posOnCube)
+        {
+            _posOnCube = posOnCube;
+        }
 
         public void SetOrder(int order)
         {
@@ -14,18 +23,18 @@ namespace MagicCube
             {
                 order = 2;
             }
-            this.order = order;
+            _order = order;
         }
 
-        public void Expand()
+        public void SetScale( Vector3 targetScale, float duration )
         {
+            if ( this.transform.localScale == targetScale )
+            {
+                return;
+            }
             this.transform
-                .DOScale( Vector3.one, 0.5f );
-        }
-        public void Contract()
-        {
-            this.transform
-                .DOScale( Vector3.zero, 0.5f );
+                .DOScale( targetScale, duration )
+                .SetEase( Ease.OutQuint );
         }
 
     }

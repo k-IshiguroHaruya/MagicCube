@@ -24,6 +24,9 @@ namespace MagicCube
         {
             screenModel.screenType
                 .Subscribe( screenType => screenView.ChangeScreen(screenType) );
+            
+            screenView.onClickStartGameButtonTrigger()
+                .Subscribe( screenType => screenModel.SetScreenType(screenType) );
         }
 
     }
