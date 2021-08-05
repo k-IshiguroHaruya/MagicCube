@@ -4,19 +4,37 @@ using UniRx;
 using UnityEngine.UI;
 using System;
 using DG.Tweening;
+using System.Collections.Generic;
+using System.Linq;
+
 namespace MagicCube
 {
     public enum CubeRotateStatus
     {
         ニュートラル,
-        横回転中,
-        縦回転中,
+        回転中,
+    }
+    public struct DruggingEachCubeAxisData
+    {
+        public Vector3 worldPosition { get; set; }
+        public Vector3 worldVector { get; set; }
+        public Vector2 screenVector { get; set; }
+        public Axis axis { get; set; }
+        
+        public DruggingEachCubeAxisData( Vector3 worldPosition, Vector3 worldVector, Vector2 screenVector, Axis axis )
+        {
+            this.worldPosition = worldPosition;
+            this.worldVector = worldVector;
+            this.screenVector = screenVector;
+            this.axis = axis;
+        }
     }
     public class CubeView : MonoBehaviour
     {
         [SerializeField] private Slider cubeSizeSlider;
         [SerializeField] private GameObject eachCubePrefab;
         [SerializeField] private float mouseDeltaThreshold;
+        [SerializeField] private Image[] debugImages;
 
         private readonly Subject<int> _onSliderValueChangedTrigger = new Subject<int>();
         public IObservable<int> onSliderValueChangedTrigger() => _onSliderValueChangedTrigger;
@@ -31,12 +49,17 @@ namespace MagicCube
 
         private float eachCubeMargin;
         private float cubeSize;
-        private Vector3 targetPos;
+        private Vector3 parentCubeCenter;
         private CubeRotateStatus cubeRotateStatus;
+        private Vector2 hitSurfacePosOnScreen;
+        private Vector3 hitSurfacePos;
         private Vector3 cubeSurfaceAxis;
+        // private List<Vector3> druggingEachCubeAxisVectorsOnScreen;
         private EachCubeController druggingEachCube;
-        private Transform forRotatePlane;
+        private List<DruggingEachCubeAxisData> druggingEachCubeAxisDatas;
+        private PlaneData forRotatePlaneData;
         private Vector3 axisVectorOnWorld;
+        private Vector3 planeRotateOnRotateStart;
 
         void Start()
         {
@@ -62,18 +85,13 @@ namespace MagicCube
                     {
                         if (hit_info.transform.tag == "Surface")
                         {
+                            hitSurfacePosOnScreen = Input.mousePosition;
+                            hitSurfacePos = hit_info.point;
                             cubeSurfaceAxis = hit_info.transform.parent.transform.position - hit_info.transform.position;
-                            OnDrugCube();
+                            OnDrugCube(Input.mousePosition);
                             _onButtonDownOnEachCubeTrigger.OnNext(hit_info.transform.parent.GetComponent<EachCubeController>());
                         }
                     }
-                })
-                .AddTo(this);
-            Observable.EveryUpdate()
-                .Where( _ => Input.GetMouseButtonUp(0) )
-                .Subscribe( _ =>
-                {
-                    _onFinishedPlaneRotateTrigger.OnNext(this.transform);
                 })
                 .AddTo(this);
         }
@@ -100,25 +118,65 @@ namespace MagicCube
                     }
                 }
             }
-            forRotatePlane = new GameObject().transform;
-            forRotatePlane.transform.parent = this.transform;
-            forRotatePlane.name = "For Rotate Plane";
+            forRotatePlaneData = new PlaneData();
+            forRotatePlaneData.transform = new GameObject().transform;
+            forRotatePlaneData.transform.parent = this.transform;
+            forRotatePlaneData.transform.name = "For Rotate Plane";
             _onSliderValueChangedTrigger.OnNext( (int)cubeSizeSlider.value );
         }
 
         public void OnChangeCubeSize(int cubeSize)
         {
             this.cubeSize = cubeSize;
-            targetPos = new Vector3( (-cubeSize+eachCubeMargin)/2f, (-cubeSize+eachCubeMargin)/2f, (-cubeSize+eachCubeMargin)/2f );
+            parentCubeCenter = new Vector3( (-cubeSize+eachCubeMargin)/2f, (-cubeSize+eachCubeMargin)/2f, (-cubeSize+eachCubeMargin)/2f );
             this.transform
-                .DOMove( targetPos, 0.5f )
+                .DOMove( parentCubeCenter, 0.5f )
                 .SetEase( Ease.OutQuint );
         }
 
-        private void OnDrugCube()
+        public void DestoryUnnecessaryCubes(EachCubeController eachCube)
         {
-            Vector2 mouseDeltaProduct = Vector2.zero;
+            Destroy(eachCube.gameObject);
+        }
+
+        public void OnSetDruggingEachCube(EachCubeController eachCube)
+        {
+            druggingEachCube = eachCube;
+
+            druggingEachCubeAxisDatas = new List<DruggingEachCubeAxisData>();
+
+            druggingEachCubeAxisDatas.Add( new DruggingEachCubeAxisData( hitSurfacePos + druggingEachCube.transform.right,   druggingEachCube.transform.right,   Vector2.zero, Axis.X ) );
+            druggingEachCubeAxisDatas.Add( new DruggingEachCubeAxisData( hitSurfacePos + druggingEachCube.transform.up,      druggingEachCube.transform.up,      Vector2.zero, Axis.Y ) );
+            druggingEachCubeAxisDatas.Add( new DruggingEachCubeAxisData( hitSurfacePos + druggingEachCube.transform.forward, druggingEachCube.transform.forward, Vector2.zero, Axis.Z ) );
+
+            for(int i=0; i<druggingEachCubeAxisDatas.Count; i++)
+            {
+                float dot = Vector3.Dot( cubeSurfaceAxis.normalized, druggingEachCubeAxisDatas[i].worldVector.normalized );
+                if ( Math.Abs(dot) < 0.9f )
+                {
+                    DruggingEachCubeAxisData data = druggingEachCubeAxisDatas[i];
+                    data.screenVector = ( Camera.main.WorldToScreenPoint(druggingEachCubeAxisDatas[i].worldPosition) - Camera.main.WorldToScreenPoint(hitSurfacePos) );
+                    druggingEachCubeAxisDatas[i] = data;
+                }
+            }
+            druggingEachCubeAxisDatas = druggingEachCubeAxisDatas
+                .Where( data => data.screenVector != Vector2.zero )
+                .ToList();
+
+            // デバグ用
+            for(int i=0; i<druggingEachCubeAxisDatas.Count; i++)
+            {
+                debugImages[i].rectTransform.position = new Vector2( druggingEachCubeAxisDatas[i].screenVector.x, druggingEachCubeAxisDatas[i].screenVector.y ) + hitSurfacePosOnScreen;
+            }
+        }
+
+        private void OnDrugCube(Vector2 onButtonDownMousePos)
+        {
+            Vector2 mouseVector = Vector2.zero;
             cubeRotateStatus = CubeRotateStatus.ニュートラル;
+            Vector2 druggingEachCubeAxisVectorOnScreen = Vector2.zero;
+            Vector2 lastMousePos = onButtonDownMousePos;
+            forRotatePlaneData.transform.localPosition = -parentCubeCenter;
 
             var mouseUp = Observable.EveryUpdate()
                 .Where( _ => Input.GetMouseButtonUp(0) );
@@ -126,74 +184,96 @@ namespace MagicCube
                 .TakeUntil(mouseUp)
                 .Subscribe( _ =>
                 {
-                    float mouseDeltaX = Input.GetAxis("Mouse X");
-                    float mouseDeltaY = Input.GetAxis("Mouse Y");
+                    mouseVector = new Vector2(Input.mousePosition.x, Input.mousePosition.y)  - onButtonDownMousePos;
                     switch(cubeRotateStatus)
                     {
                         case CubeRotateStatus.ニュートラル:
-                            mouseDeltaProduct += new Vector2( mouseDeltaX, mouseDeltaY );
-                            if ( Mathf.Abs(mouseDeltaProduct.x) >= mouseDeltaThreshold )
+                            foreach( DruggingEachCubeAxisData data in druggingEachCubeAxisDatas )
                             {
-                                cubeRotateStatus = CubeRotateStatus.横回転中;
-                                SetForRotatePlane(mouseDeltaX, Camera.main.transform.right);
-                            }
-                            if ( Mathf.Abs(mouseDeltaProduct.y) >= mouseDeltaThreshold)
-                            {
-                                cubeRotateStatus = CubeRotateStatus.縦回転中;
-                                SetForRotatePlane(mouseDeltaY, Camera.main.transform.up);
+                                if( (Vector2.Dot(data.screenVector.normalized, mouseVector.normalized) * mouseVector).magnitude - data.screenVector.magnitude >= 1f )
+                                {
+                                    cubeRotateStatus = CubeRotateStatus.回転中;
+                                    druggingEachCubeAxisVectorOnScreen = data.screenVector;
+                                    SetForRotatePlane( mouseVector.magnitude, data.worldVector );
+                                }
                             }
                             break;
-                        case CubeRotateStatus.横回転中:
-                            RotatePlane(mouseDeltaX);
-                            break;
-                        case CubeRotateStatus.縦回転中:
-                            RotatePlane(mouseDeltaY);
+                        case CubeRotateStatus.回転中:
+                            float deltaX = (Input.mousePosition.x - lastMousePos.x) / Screen.width;
+                            float deltaY = (Input.mousePosition.y - lastMousePos.y) / Screen.height;
+                            RotatePlane( Vector3.Dot( druggingEachCubeAxisVectorOnScreen, new Vector2( deltaX, deltaY )) );
                             break;
                     }
+                    lastMousePos = Input.mousePosition;
+                }, () =>
+                {
+                    ComplementRotate();
                 })
                 .AddTo(this);
         }
         private void SetForRotatePlane(float delta, Vector3 basisVector)
         {
-            Vector3 deltaVectorOnWorld = basisVector * Mathf.Abs(delta);
+            Vector3 deltaVectorOnWorld = basisVector * delta;
             axisVectorOnWorld = Vector3.Cross(deltaVectorOnWorld, cubeSurfaceAxis).normalized;
             float absDotX = Mathf.Abs( Vector3.Dot( axisVectorOnWorld, this.transform.right ) );
             float absDotY = Mathf.Abs( Vector3.Dot( axisVectorOnWorld, this.transform.up ) );
             float absDotZ = Mathf.Abs( Vector3.Dot( axisVectorOnWorld, this.transform.forward ) );
             float maxDot = Mathf.Max( Mathf.Max( absDotX, absDotY ), absDotZ );
 
-            PlaneData planeData = new PlaneData();
-            if ( maxDot == absDotX )
+            if( maxDot == absDotX )
             {
-                forRotatePlane.transform.position = new Vector3( eachCubeMargin/2f + eachCubeMargin * (druggingEachCube.posOnCube.x - cubeSize/2f), 0, 0 );
-                forRotatePlane.transform.forward = this.transform.right;
-                planeData.axis = Axis.X;
+                forRotatePlaneData.transform.forward = this.transform.right;
+                forRotatePlaneData.axis = Axis.X;
+                Debug.Log("X軸回転");
             }
-            if ( maxDot == absDotY )
+            if( maxDot == absDotY )
             {
-                forRotatePlane.transform.position = new Vector3( 0, eachCubeMargin/2f + eachCubeMargin * (druggingEachCube.posOnCube.y - cubeSize/2f), 0 );
-                forRotatePlane.transform.forward = this.transform.up;
-                planeData.axis = Axis.Y;
+                forRotatePlaneData.transform.forward = -this.transform.up;
+                forRotatePlaneData.axis = Axis.Y;
+                Debug.Log("Y軸回転");
             }
-            if ( maxDot == absDotZ )
+            if( maxDot == absDotZ )
             {
-                forRotatePlane.transform.position = new Vector3( 0, 0, eachCubeMargin/2f + eachCubeMargin * (druggingEachCube.posOnCube.z - cubeSize/2f) );
-                forRotatePlane.transform.forward = this.transform.forward;
-                planeData.axis = Axis.Z;
+                forRotatePlaneData.transform.forward = -this.transform.forward;
+                forRotatePlaneData.axis = Axis.Z;
+                Debug.Log("Z軸回転");
             }
-            planeData.transform = forRotatePlane;
-            _onChangedForRotatePlaneTrigger.OnNext(planeData);
+            planeRotateOnRotateStart = forRotatePlaneData.transform.localEulerAngles;
+            _onChangedForRotatePlaneTrigger.OnNext(forRotatePlaneData);
         }
 
         private void RotatePlane(float delta)
         {
-            delta *= 10f;
-            forRotatePlane.Rotate(axisVectorOnWorld, delta, Space.World);
+            forRotatePlaneData.transform.localEulerAngles += new Vector3( 0, 0, delta );
         }
 
-        public void OnSetDruggingEachCube(EachCubeController eachCube)
+        private void ComplementRotate()
         {
-            druggingEachCube = eachCube;
+            float deltaPlaneRotate = (forRotatePlaneData.transform.localEulerAngles - planeRotateOnRotateStart).magnitude;
+            int arrangedDelta = (int)deltaPlaneRotate + 45;
+            arrangedDelta = arrangedDelta >= 360 ? arrangedDelta - 360 : arrangedDelta;
+            int deltaRange = arrangedDelta / 90;
+            
+            Vector3 targetEulerAngles = Vector3.zero;
+            switch(forRotatePlaneData.axis)
+            {
+                case Axis.X:
+                    targetEulerAngles = new Vector3( forRotatePlaneData.transform.localEulerAngles.x, forRotatePlaneData.transform.localEulerAngles.y, planeRotateOnRotateStart.z + deltaRange * 90 );
+                    break;
+                case Axis.Y:
+                    targetEulerAngles = new Vector3( forRotatePlaneData.transform.localEulerAngles.x, planeRotateOnRotateStart.y + deltaRange * 90, forRotatePlaneData.transform.localEulerAngles.z );
+                    break;
+                case Axis.Z:
+                    targetEulerAngles = new Vector3( forRotatePlaneData.transform.localEulerAngles.x, forRotatePlaneData.transform.localEulerAngles.y, planeRotateOnRotateStart.z + deltaRange * 90 );
+                    break;
+            }
+            forRotatePlaneData.transform
+                .DOLocalRotate( targetEulerAngles, 0.5f, RotateMode.Fast )
+                .SetEase(Ease.OutQuint)
+                .OnComplete( () =>
+                {
+                    _onFinishedPlaneRotateTrigger.OnNext(this.transform);
+                });
         }
 
     }

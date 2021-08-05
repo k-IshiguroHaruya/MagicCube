@@ -28,7 +28,11 @@ namespace MagicCube
                 .SkipLatestValueOnSubscribe()
                 .Subscribe( size => cubeView.OnChangeCubeSize(size) );
             cubeModel.druggingEachCube
+                .SkipLatestValueOnSubscribe()
                 .Subscribe( eachCube => cubeView.OnSetDruggingEachCube(eachCube) );
+            cubeModel.eachCubes
+                .ObserveRemove()
+                .Subscribe( eachCubes => cubeView.DestoryUnnecessaryCubes(eachCubes.Value) );
             
             cubeView.onSliderValueChangedTrigger()
                 .Subscribe( size => cubeModel.SetCubeSize(size) );
@@ -50,7 +54,7 @@ namespace MagicCube
                             cubeView.InitCube();
                             break;
                         case ScreenType.メイン画面:
-
+                            cubeModel.DeleteUnnecessaryCubes();
                             break;
                     }
                 });

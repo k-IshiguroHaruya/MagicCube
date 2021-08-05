@@ -32,7 +32,7 @@ namespace MagicCube
 
             foreach( EachCubeController eachCube in _eachCubes )
             {
-                if ( eachCube.order <= cubeSize )
+                if( eachCube.order <= cubeSize )
                 {
                     eachCube.SetScale( Vector3.one, 0.5f );
                 }
@@ -46,6 +46,17 @@ namespace MagicCube
         public void AddEachCubes(EachCubeController eachCube)
         {
             _eachCubes.Add(eachCube);
+        }
+
+        public void DeleteUnnecessaryCubes()
+        {
+            for(int i=_eachCubes.Count-1; i>=0; i--)
+            {
+                if( _eachCubes[i].order > _cubeSize.Value )
+                {
+                    _eachCubes.RemoveAt(i);
+                }
+            }
         }
 
         public void SetDruggingEachCube(EachCubeController eachCube)
@@ -74,7 +85,7 @@ namespace MagicCube
                         druggingPlanePos = _druggingEachCube.Value.posOnCube.z;
                         break;
                 }
-                if ( pos == druggingPlanePos )
+                if( pos == druggingPlanePos )
                 {
                     eachCube.transform.parent = planeData.transform;
                 }
