@@ -46,8 +46,10 @@ namespace MagicCube
         public IObservable<EachCubeController> onButtonDownOnEachCubeTrigger() => _onButtonDownOnEachCubeTrigger;
         private readonly Subject<PlaneData> _onChangedForRotatePlaneTrigger = new Subject<PlaneData>();
         public IObservable<PlaneData> onChangedForRotatePlaneTrigger() => _onChangedForRotatePlaneTrigger;
-        private readonly Subject<int> _onFinishedPlaneRotateTrigger = new Subject<int>();
-        public IObservable<int> onFinishedPlaneRotateTrigger() => _onFinishedPlaneRotateTrigger;
+        private readonly Subject<PlaneData> _onFinishedPlaneRotateTrigger = new Subject<PlaneData>();
+        public IObservable<PlaneData> onFinishedPlaneRotateTrigger() => _onFinishedPlaneRotateTrigger;
+        private readonly Subject<Unit> _onClickUndoButtonTrigger = new Subject<Unit>();
+        public IObservable<Unit> onClickUndoButtonTrigger() => _onClickUndoButtonTrigger;
 
         private float eachCubeMargin;
         private float cubeSize;
@@ -99,6 +101,15 @@ namespace MagicCube
                     }
                 })
                 .AddTo(this);
+        }
+
+        public void OnClickUndoButton()
+        {
+            if (isRotatingPlane)
+            {
+                return;
+            }
+            _onClickUndoButtonTrigger.OnNext(Unit.Default);
         }
 
         public void InitCube()
@@ -214,7 +225,7 @@ namespace MagicCube
                 {
                     if (cubeRotateStatus == CubeRotateStatus.回転中)
                     {
-                        ComplementRotate(); 
+                        ComplementRotatePlane(); 
                     }
                 })
                 .AddTo(this);
@@ -254,24 +265,30 @@ namespace MagicCube
             forRotatePlaneData.transform.localEulerAngles += new Vector3( 0, 0, delta );
         }
 
-        private void ComplementRotate()
+        private void ComplementRotatePlane()
         {
             float deltaPlaneRotate = (forRotatePlaneData.transform.localEulerAngles - planeRotateOnRotateStart).magnitude;
             int arrangedDelta = (int)deltaPlaneRotate + 45;
             arrangedDelta = arrangedDelta >= 360 ? arrangedDelta - 360 : arrangedDelta;
-            int rotationNum = arrangedDelta / 90;
+            forRotatePlaneData.rotationNum = arrangedDelta / 90;
+            forRotatePlaneData.isUndoRotate = false;
             
+            AutoRotatePlane(forRotatePlaneData);
+        }
+
+        public void AutoRotatePlane(PlaneData planeData)
+        {
             Vector3 targetEulerAngles = Vector3.zero;
-            switch(forRotatePlaneData.axis)
+            switch(planeData.axis)
             {
                 case Axis.X:
-                    targetEulerAngles = new Vector3( forRotatePlaneData.transform.localEulerAngles.x, forRotatePlaneData.transform.localEulerAngles.y, planeRotateOnRotateStart.z + rotationNum * 90 );
+                    targetEulerAngles = new Vector3( planeData.transform.localEulerAngles.x, planeData.transform.localEulerAngles.y, planeRotateOnRotateStart.z + planeData.rotationNum * 90 );
                     break;
                 case Axis.Y:
-                    targetEulerAngles = new Vector3( forRotatePlaneData.transform.localEulerAngles.x, planeRotateOnRotateStart.y + rotationNum * 90, forRotatePlaneData.transform.localEulerAngles.z );
+                    targetEulerAngles = new Vector3( planeData.transform.localEulerAngles.x, planeRotateOnRotateStart.y + planeData.rotationNum * 90, planeData.transform.localEulerAngles.z );
                     break;
                 case Axis.Z:
-                    targetEulerAngles = new Vector3( forRotatePlaneData.transform.localEulerAngles.x, forRotatePlaneData.transform.localEulerAngles.y, planeRotateOnRotateStart.z + rotationNum * 90 );
+                    targetEulerAngles = new Vector3( planeData.transform.localEulerAngles.x, planeData.transform.localEulerAngles.y, planeRotateOnRotateStart.z + planeData.rotationNum * 90 );
                     break;
             }
 
@@ -281,7 +298,8 @@ namespace MagicCube
                 .SetEase(Ease.OutQuint)
                 .OnComplete( () =>
                 {
-                    _onFinishedPlaneRotateTrigger.OnNext(rotationNum);
+                    _onFinishedPlaneRotateTrigger.OnNext(planeData);
+                    planeRotateOnRotateStart = targetEulerAngles;
                     isRotatingPlane = false;
                 });
         }

@@ -33,6 +33,8 @@ namespace MagicCube
             cubeModel.eachCubes
                 .ObserveRemove()
                 .Subscribe( eachCubes => cubeView.DestoryUnnecessaryCubes(eachCubes.Value) );
+            cubeModel.undoRotatePlaneTrigger()
+                .Subscribe( planeData => cubeView.AutoRotatePlane(planeData) );
             
             cubeView.onStartCubeViewTrigger()
                 .Subscribe( transform => cubeModel.SetParentCubeTransform(transform) );
@@ -45,7 +47,9 @@ namespace MagicCube
             cubeView.onChangedForRotatePlaneTrigger()
                 .Subscribe( planeData => cubeModel.SetEachCubesParentPlane(planeData) );
             cubeView.onFinishedPlaneRotateTrigger()
-                .Subscribe( rotationNum => cubeModel.ReleaseEachCubesPlane(rotationNum) );
+                .Subscribe( planeData => cubeModel.ReleaseEachCubesPlane(planeData) );
+            cubeView.onClickUndoButtonTrigger()
+                .Subscribe( _ => cubeModel.UndoRotatePlane() );
 
             screenModel.screenType
                 .Subscribe( screenType =>
