@@ -10,6 +10,7 @@ namespace MagicCube
     {
         public Transform transform;
         public Axis axis;
+        public int plusMinus;
     }
 
     public enum Axis
@@ -29,7 +30,7 @@ namespace MagicCube
         public IReadOnlyReactiveProperty<EachCubeController> druggingEachCube { get => _druggingEachCube; }
 
         private Transform parentCubeTransform;
-        private Axis rotatingPlaneAxis;
+        private PlaneData rotatingPlaneData;
         private List<EachCubeController> eachCubesOnRotatingPlane;
 
         public void SetParentCubeTransform(Transform transform)
@@ -78,38 +79,38 @@ namespace MagicCube
 
         public void SetEachCubesParentPlane(PlaneData planeData)
         {
-            rotatingPlaneAxis = planeData.axis;
+            rotatingPlaneData = planeData;
             eachCubesOnRotatingPlane = new List<EachCubeController>();
 
-            float rotatingPlanePos = 0;
-            switch(rotatingPlaneAxis)
+            int rotatingPlaneAxisPos = 0;
+            switch(rotatingPlaneData.axis)
             {
                 case Axis.X:
-                    rotatingPlanePos = _druggingEachCube.Value.posOnCube.x;
+                    rotatingPlaneAxisPos = Mathf.FloorToInt(_druggingEachCube.Value.posOnCube.x);
                     break;
                 case Axis.Y:
-                    rotatingPlanePos = _druggingEachCube.Value.posOnCube.y;
+                    rotatingPlaneAxisPos = Mathf.FloorToInt(_druggingEachCube.Value.posOnCube.y);
                     break;
                 case Axis.Z:
-                    rotatingPlanePos = _druggingEachCube.Value.posOnCube.z;
+                    rotatingPlaneAxisPos = Mathf.FloorToInt(_druggingEachCube.Value.posOnCube.z);
                     break;
             }
             foreach( EachCubeController eachCube in _eachCubes )
             {
-                float pos = 0;
-                switch(rotatingPlaneAxis)
+                int pos = 0;
+                switch(rotatingPlaneData.axis)
                 {
                     case Axis.X:
-                        pos = eachCube.posOnCube.x;
+                        pos = Mathf.FloorToInt(eachCube.posOnCube.x);
                         break;
                     case Axis.Y:
-                        pos = eachCube.posOnCube.y;
+                        pos = Mathf.FloorToInt(eachCube.posOnCube.y);
                         break;
                     case Axis.Z:
-                        pos = eachCube.posOnCube.z;
+                        pos = Mathf.FloorToInt(eachCube.posOnCube.z);
                         break;
                 }
-                if( pos == rotatingPlanePos )
+                if( pos == rotatingPlaneAxisPos )
                 {
                     eachCubesOnRotatingPlane.Add(eachCube);
                     eachCube.transform.parent = planeData.transform;
@@ -121,45 +122,43 @@ namespace MagicCube
         {
             if ( rotationNum != 0)
             {
-                Debug.Log("回転機構");
                 Vector2 eachCubePosOnAxisPlane = Vector2.zero;
                 float rotationNumRadian = -Mathf.PI / 2f * rotationNum;
                 Vector3 rotatedEachCubeWorldPos = Vector3.zero;
-                float centerMargin = _cubeSize.Value/2f * 0.5f;
+                float centerMargin = (_cubeSize.Value-1) * 0.5f;
                 foreach( EachCubeController eachCubeOnRotatingPlane in eachCubesOnRotatingPlane )
                 {
                     // Debug.Log(eachCubeOnRotatingPlane.posOnCube);
                     // Debug.Log("↓");
-
-                    switch(rotatingPlaneAxis)
+                    switch(rotatingPlaneData.axis)
                     {
                         case Axis.X:
-                            eachCubePosOnAxisPlane = new Vector2( eachCubeOnRotatingPlane.posOnCube.y, eachCubeOnRotatingPlane.posOnCube.z ) - new Vector2( centerMargin, centerMargin );
-                            eachCubePosOnAxisPlane = MultipleRotationMatrix( eachCubePosOnAxisPlane, rotationNumRadian ) + new Vector2( centerMargin, centerMargin );
+                            eachCubePosOnAxisPlane = new Vector2( eachCubeOnRotatingPlane.posOnCube.y, eachCubeOnRotatingPlane.posOnCube.z ) - new Vector2( centerMargin, centerMargin);
+                            eachCubePosOnAxisPlane = MultipleRotationMatrix( eachCubePosOnAxisPlane, rotationNumRadian * rotatingPlaneData.plusMinus ) + new Vector2( centerMargin, centerMargin );
                             rotatedEachCubeWorldPos = new Vector3( eachCubeOnRotatingPlane.posOnCube.x, eachCubePosOnAxisPlane.x, eachCubePosOnAxisPlane.y );
                             break;
                         case Axis.Y:
-                            eachCubePosOnAxisPlane = new Vector2( eachCubeOnRotatingPlane.posOnCube.x, -eachCubeOnRotatingPlane.posOnCube.z ) - new Vector2( centerMargin, -centerMargin );
-                            eachCubePosOnAxisPlane = MultipleRotationMatrix( eachCubePosOnAxisPlane, rotationNumRadian ) + new Vector2( centerMargin, -centerMargin );
-                            rotatedEachCubeWorldPos = new Vector3( eachCubePosOnAxisPlane.x, eachCubeOnRotatingPlane.posOnCube.y, eachCubePosOnAxisPlane.y );
+                            eachCubePosOnAxisPlane = new Vector2( eachCubeOnRotatingPlane.posOnCube.z, eachCubeOnRotatingPlane.posOnCube.x ) - new Vector2( centerMargin, centerMargin );
+                            eachCubePosOnAxisPlane = MultipleRotationMatrix( eachCubePosOnAxisPlane, rotationNumRadian ) + new Vector2( centerMargin, centerMargin );
+                            rotatedEachCubeWorldPos = new Vector3( eachCubePosOnAxisPlane.y, eachCubeOnRotatingPlane.posOnCube.y, eachCubePosOnAxisPlane.x );
                             break;
                         case Axis.Z:
                             eachCubePosOnAxisPlane = new Vector2( eachCubeOnRotatingPlane.posOnCube.x, eachCubeOnRotatingPlane.posOnCube.y ) - new Vector2( centerMargin, centerMargin );
-                            eachCubePosOnAxisPlane = MultipleRotationMatrix( eachCubePosOnAxisPlane, rotationNumRadian ) + new Vector2( centerMargin, centerMargin );
+                            eachCubePosOnAxisPlane = MultipleRotationMatrix( eachCubePosOnAxisPlane, rotationNumRadian * rotatingPlaneData.plusMinus ) + new Vector2( centerMargin, centerMargin );
                             rotatedEachCubeWorldPos = new Vector3( eachCubePosOnAxisPlane.x, eachCubePosOnAxisPlane.y, eachCubeOnRotatingPlane.posOnCube.z );
                             break;
                     }
                     _eachCubes
                         .ToList()
                         .Find( eachCube => eachCube == eachCubeOnRotatingPlane )
-                        .posOnCube = rotatedEachCubeWorldPos;
-
+                        .posOnCube = rotatedEachCubeWorldPos.Round();
                     // Debug.Log(eachCubeOnRotatingPlane.posOnCube);
                 }
             }
             foreach( EachCubeController eachCube in _eachCubes )
             {
                 eachCube.transform.parent = parentCubeTransform;
+                eachCube.transform.position.Round();
             }
         }
         private Vector2 MultipleRotationMatrix( Vector2 matrix, float radian )

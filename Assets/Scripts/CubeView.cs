@@ -62,6 +62,7 @@ namespace MagicCube
         private PlaneData forRotatePlaneData;
         private Vector3 axisVectorOnWorld;
         private Vector3 planeRotateOnRotateStart;
+        private bool isRotatingPlane;
 
         void Start()
         {
@@ -78,7 +79,7 @@ namespace MagicCube
                 .AddTo(this);
 
             Observable.EveryUpdate()
-                .Where( _ => Input.GetMouseButtonDown(0) )
+                .Where( _ => Input.GetMouseButtonDown(0) && isRotatingPlane == false )
                 .Subscribe( _ =>
                 {
                     Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -222,28 +223,27 @@ namespace MagicCube
         {
             Vector3 deltaVectorOnWorld = basisVector * delta;
             axisVectorOnWorld = Vector3.Cross(deltaVectorOnWorld, cubeSurfaceAxis).normalized;
-            float absDotX = Mathf.Abs( Vector3.Dot( axisVectorOnWorld, this.transform.right ) );
-            float absDotY = Mathf.Abs( Vector3.Dot( axisVectorOnWorld, this.transform.up ) );
-            float absDotZ = Mathf.Abs( Vector3.Dot( axisVectorOnWorld, this.transform.forward ) );
-            float maxDot = Mathf.Max( Mathf.Max( absDotX, absDotY ), absDotZ );
+            Vector3 dots = new Vector3( Vector3.Dot( axisVectorOnWorld, this.transform.right ), Vector3.Dot( axisVectorOnWorld, this.transform.up ), Vector3.Dot( axisVectorOnWorld, this.transform.forward ) );
+            Vector3 absDots = new Vector3( Mathf.Abs(dots.x), Mathf.Abs(dots.y), Mathf.Abs(dots.z) );
+            float maxDot = Mathf.Max( Mathf.Max( absDots.x, absDots.y ), absDots.z );
 
-            if( maxDot == absDotX )
+            if( maxDot == absDots.x )
             {
-                forRotatePlaneData.transform.forward = this.transform.right;
+                forRotatePlaneData.transform.forward = this.transform.right * dots.x;
                 forRotatePlaneData.axis = Axis.X;
-                Debug.Log("X軸回転");
+                forRotatePlaneData.plusMinus = (int)dots.x;
             }
-            if( maxDot == absDotY )
+            if( maxDot == absDots.y )
             {
-                forRotatePlaneData.transform.forward = -this.transform.up;
+                forRotatePlaneData.transform.forward = this.transform.up * dots.y;
                 forRotatePlaneData.axis = Axis.Y;
-                Debug.Log("Y軸回転");
+                forRotatePlaneData.plusMinus = (int)dots.y;
             }
-            if( maxDot == absDotZ )
+            if( maxDot == absDots.z )
             {
-                forRotatePlaneData.transform.forward = -this.transform.forward;
+                forRotatePlaneData.transform.forward = this.transform.forward * dots.z;
                 forRotatePlaneData.axis = Axis.Z;
-                Debug.Log("Z軸回転");
+                forRotatePlaneData.plusMinus = (int)dots.z;
             }
             planeRotateOnRotateStart = forRotatePlaneData.transform.localEulerAngles;
             _onChangedForRotatePlaneTrigger.OnNext(forRotatePlaneData);
@@ -275,13 +275,14 @@ namespace MagicCube
                     break;
             }
 
+            isRotatingPlane = true;
             forRotatePlaneData.transform
                 .DOLocalRotate( targetEulerAngles, 0.5f, RotateMode.Fast )
                 .SetEase(Ease.OutQuint)
                 .OnComplete( () =>
                 {
-                    Debug.Log("rotationNum : " + rotationNum);
                     _onFinishedPlaneRotateTrigger.OnNext(rotationNum);
+                    isRotatingPlane = false;
                 });
         }
 

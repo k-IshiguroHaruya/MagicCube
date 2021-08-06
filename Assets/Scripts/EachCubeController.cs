@@ -7,7 +7,7 @@ namespace MagicCube
     public class EachCubeController : MonoBehaviour
     {
         private Vector3 _posOnCube;
-        public Vector3 posOnCube { get => _posOnCube; set { _posOnCube = value; } }
+        public Vector3 posOnCube { get => _posOnCube; set { _posOnCube = value.Round(); } }
         
         private int _order;
         public int order { get => _order; }
