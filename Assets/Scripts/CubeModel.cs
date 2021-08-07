@@ -2,7 +2,6 @@
 using UniRx;
 using UnityEngine;
 using System.Collections.Generic;
-using System.Linq;
 using System;
 
 namespace MagicCube
@@ -11,9 +10,11 @@ namespace MagicCube
     {
         public Transform transform;
         public Axis axis;
+        public Vector3 druggingEachCubePosition;
         public int plusMinus;
-        public int rotationNum;
         public Quaternion localRotation;
+        public int rotatedNum;
+        public Vector3 baseEulerAngles;
         public bool isUndoRotate;
     }
 
@@ -85,36 +86,36 @@ namespace MagicCube
 
         public void SetEachCubesParentPlane(PlaneData planeData)
         {
-            int rotatingPlaneAxisPos = 0;
-            Vector3 druggingEachCubePosition = _druggingEachCube.Value.transform.position;
+            float rotatingPlaneAxisPos = 0;
+            Vector3 druggingEachCubePosition = planeData.druggingEachCubePosition - parentCubeTransform.position;
             switch(planeData.axis)
             {
                 case Axis.X:
-                    rotatingPlaneAxisPos = Mathf.FloorToInt(druggingEachCubePosition.x);
+                    rotatingPlaneAxisPos = Mathf.Round(druggingEachCubePosition.x);
                     break;
                 case Axis.Y:
-                    rotatingPlaneAxisPos = Mathf.FloorToInt(druggingEachCubePosition.y);
+                    rotatingPlaneAxisPos = Mathf.Round(druggingEachCubePosition.y);
                     break;
                 case Axis.Z:
-                    rotatingPlaneAxisPos = Mathf.FloorToInt(druggingEachCubePosition.z);
+                    rotatingPlaneAxisPos = Mathf.Round(druggingEachCubePosition.z);
                     break;
             }
             
             eachCubesOnRotatingPlane = new List<EachCubeController>();
             foreach( EachCubeController eachCube in _eachCubes )
             {
-                int axisPos = 0;
-                Vector3 eachCubePosition = eachCube.transform.position;
+                float axisPos = 0;
+                Vector3 eachCubePosition = eachCube.transform.position - parentCubeTransform.position;;
                 switch(planeData.axis)
                 {
                     case Axis.X:
-                        axisPos = Mathf.FloorToInt(eachCubePosition.x);
+                        axisPos = Mathf.Round(eachCubePosition.x);
                         break;
                     case Axis.Y:
-                        axisPos = Mathf.FloorToInt(eachCubePosition.y);
+                        axisPos = Mathf.Round(eachCubePosition.y);
                         break;
                     case Axis.Z:
-                        axisPos = Mathf.FloorToInt(eachCubePosition.z);
+                        axisPos = Mathf.Round(eachCubePosition.z);
                         break;
                 }
                 if( axisPos == rotatingPlaneAxisPos )
@@ -127,18 +128,9 @@ namespace MagicCube
 
         public void OnFinishedPlaneRotate(PlaneData planeData)
         {
-            if ( planeData.rotationNum != 0 && planeData.isUndoRotate == false)
+            if( planeData.rotatedNum != 0 && planeData.isUndoRotate == false)
             {
                 planeData.localRotation = planeData.transform.localRotation;
-                // Debug.Log
-                // (
-                //     "planeData.transform : " + planeData.transform + 
-                //     ", planeData.axis : " + planeData.axis +
-                //     ", planeData.plusMinus : " + planeData.plusMinus +
-                //     ", planeData.rotationNum : " + planeData.rotationNum +
-                //     ", planeData.localRotation : " + planeData.localRotation +
-                //     ", planeData.isUndoRotate : " + planeData.isUndoRotate
-                // );
                 rotatedPlaneStack.Push(planeData);
             }
             foreach( EachCubeController eachCube in _eachCubes )
@@ -155,12 +147,13 @@ namespace MagicCube
                 return;
             }
             PlaneData undoPlaneData = rotatedPlaneStack.Pop();
-            undoPlaneData.rotationNum = 4 - undoPlaneData.rotationNum;
+            undoPlaneData.rotatedNum = 4 - undoPlaneData.rotatedNum;
             undoPlaneData.isUndoRotate = true;
             undoPlaneData.transform.localRotation = undoPlaneData.localRotation;
 
             SetEachCubesParentPlane(undoPlaneData);
             _undoRotatePlaneTrigger.OnNext(undoPlaneData);
+            Debug.Log("Undo");
         }
 
     }
