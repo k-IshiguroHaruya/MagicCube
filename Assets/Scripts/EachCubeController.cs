@@ -6,16 +6,16 @@ namespace MagicCube
 {
     public class EachCubeController : MonoBehaviour
     {
-        private Vector3 _posOnCube;
-        public Vector3 posOnCube { get => _posOnCube; set { _posOnCube = value.Round(); } }
+        // private Vector3 _posOnCube;
+        // public Vector3 posOnCube { get => _posOnCube; set { _posOnCube = value.Round(); } }
         
         private int _order;
         public int order { get => _order; }
 
-        public void SetPosOnCube(Vector3 posOnCube)
-        {
-            _posOnCube = posOnCube;
-        }
+        // public void SetPosOnCube(Vector3 posOnCube)
+        // {
+        //     _posOnCube = posOnCube;
+        // }
 
         public void SetOrder(int order)
         {

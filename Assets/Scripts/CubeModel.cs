@@ -7,12 +7,13 @@ using System;
 
 namespace MagicCube
 {
-    public class PlaneData
+    public struct PlaneData
     {
         public Transform transform;
         public Axis axis;
         public int plusMinus;
         public int rotationNum;
+        public Quaternion localRotation;
         public bool isUndoRotate;
     }
 
@@ -80,42 +81,43 @@ namespace MagicCube
         public void SetDruggingEachCube(EachCubeController eachCube)
         {
             _druggingEachCube.Value = eachCube;
-            Debug.Log("触ったやつのキューブ座標 : " + _druggingEachCube.Value.posOnCube);
         }
 
         public void SetEachCubesParentPlane(PlaneData planeData)
         {
-            eachCubesOnRotatingPlane = new List<EachCubeController>();
-
             int rotatingPlaneAxisPos = 0;
+            Vector3 druggingEachCubePosition = _druggingEachCube.Value.transform.position;
             switch(planeData.axis)
             {
                 case Axis.X:
-                    rotatingPlaneAxisPos = Mathf.FloorToInt(_druggingEachCube.Value.posOnCube.x);
+                    rotatingPlaneAxisPos = Mathf.FloorToInt(druggingEachCubePosition.x);
                     break;
                 case Axis.Y:
-                    rotatingPlaneAxisPos = Mathf.FloorToInt(_druggingEachCube.Value.posOnCube.y);
+                    rotatingPlaneAxisPos = Mathf.FloorToInt(druggingEachCubePosition.y);
                     break;
                 case Axis.Z:
-                    rotatingPlaneAxisPos = Mathf.FloorToInt(_druggingEachCube.Value.posOnCube.z);
+                    rotatingPlaneAxisPos = Mathf.FloorToInt(druggingEachCubePosition.z);
                     break;
             }
+            
+            eachCubesOnRotatingPlane = new List<EachCubeController>();
             foreach( EachCubeController eachCube in _eachCubes )
             {
-                int pos = 0;
+                int axisPos = 0;
+                Vector3 eachCubePosition = eachCube.transform.position;
                 switch(planeData.axis)
                 {
                     case Axis.X:
-                        pos = Mathf.FloorToInt(eachCube.posOnCube.x);
+                        axisPos = Mathf.FloorToInt(eachCubePosition.x);
                         break;
                     case Axis.Y:
-                        pos = Mathf.FloorToInt(eachCube.posOnCube.y);
+                        axisPos = Mathf.FloorToInt(eachCubePosition.y);
                         break;
                     case Axis.Z:
-                        pos = Mathf.FloorToInt(eachCube.posOnCube.z);
+                        axisPos = Mathf.FloorToInt(eachCubePosition.z);
                         break;
                 }
-                if( pos == rotatingPlaneAxisPos )
+                if( axisPos == rotatingPlaneAxisPos )
                 {
                     eachCubesOnRotatingPlane.Add(eachCube);
                     eachCube.transform.parent = planeData.transform;
@@ -123,11 +125,21 @@ namespace MagicCube
             }
         }
 
-        public void ReleaseEachCubesPlane(PlaneData planeData)
+        public void OnFinishedPlaneRotate(PlaneData planeData)
         {
-            if ( planeData.rotationNum != 0)
+            if ( planeData.rotationNum != 0 && planeData.isUndoRotate == false)
             {
-                RotatePlaneData(planeData);
+                planeData.localRotation = planeData.transform.localRotation;
+                // Debug.Log
+                // (
+                //     "planeData.transform : " + planeData.transform + 
+                //     ", planeData.axis : " + planeData.axis +
+                //     ", planeData.plusMinus : " + planeData.plusMinus +
+                //     ", planeData.rotationNum : " + planeData.rotationNum +
+                //     ", planeData.localRotation : " + planeData.localRotation +
+                //     ", planeData.isUndoRotate : " + planeData.isUndoRotate
+                // );
+                rotatedPlaneStack.Push(planeData);
             }
             foreach( EachCubeController eachCube in _eachCubes )
             {
@@ -145,59 +157,10 @@ namespace MagicCube
             PlaneData undoPlaneData = rotatedPlaneStack.Pop();
             undoPlaneData.rotationNum = 4 - undoPlaneData.rotationNum;
             undoPlaneData.isUndoRotate = true;
+            undoPlaneData.transform.localRotation = undoPlaneData.localRotation;
 
             SetEachCubesParentPlane(undoPlaneData);
             _undoRotatePlaneTrigger.OnNext(undoPlaneData);
-        }
-
-        private void RotatePlaneData(PlaneData planeData)
-        {
-            Vector2 eachCubePosOnAxisPlane = Vector2.zero;
-            float rotationNumRadian = -Mathf.PI / 2f * planeData.rotationNum;
-            Vector3 rotatedEachCubeWorldPos = Vector3.zero;
-            float centerMargin = (_cubeSize.Value-1) * 0.5f;
-            foreach( EachCubeController eachCubeOnRotatingPlane in eachCubesOnRotatingPlane )
-            {
-                // Debug.Log(eachCubeOnRotatingPlane.posOnCube);
-                // Debug.Log("↓");
-                switch(planeData.axis)
-                {
-                    case Axis.X:
-                        eachCubePosOnAxisPlane = new Vector2( eachCubeOnRotatingPlane.posOnCube.y, eachCubeOnRotatingPlane.posOnCube.z ) - new Vector2( centerMargin, centerMargin);
-                        eachCubePosOnAxisPlane = MultipleRotationMatrix( eachCubePosOnAxisPlane, rotationNumRadian * planeData.plusMinus ) + new Vector2( centerMargin, centerMargin );
-                        rotatedEachCubeWorldPos = new Vector3( eachCubeOnRotatingPlane.posOnCube.x, eachCubePosOnAxisPlane.x, eachCubePosOnAxisPlane.y );
-                        break;
-                    case Axis.Y:
-                        eachCubePosOnAxisPlane = new Vector2( eachCubeOnRotatingPlane.posOnCube.z, eachCubeOnRotatingPlane.posOnCube.x ) - new Vector2( centerMargin, centerMargin );
-                        eachCubePosOnAxisPlane = MultipleRotationMatrix( eachCubePosOnAxisPlane, rotationNumRadian ) + new Vector2( centerMargin, centerMargin );
-                        rotatedEachCubeWorldPos = new Vector3( eachCubePosOnAxisPlane.y, eachCubeOnRotatingPlane.posOnCube.y, eachCubePosOnAxisPlane.x );
-                        break;
-                    case Axis.Z:
-                        eachCubePosOnAxisPlane = new Vector2( eachCubeOnRotatingPlane.posOnCube.x, eachCubeOnRotatingPlane.posOnCube.y ) - new Vector2( centerMargin, centerMargin );
-                        eachCubePosOnAxisPlane = MultipleRotationMatrix( eachCubePosOnAxisPlane, rotationNumRadian * planeData.plusMinus ) + new Vector2( centerMargin, centerMargin );
-                        rotatedEachCubeWorldPos = new Vector3( eachCubePosOnAxisPlane.x, eachCubePosOnAxisPlane.y, eachCubeOnRotatingPlane.posOnCube.z );
-                        break;
-                }
-                _eachCubes
-                    .ToList()
-                    .Find( eachCube => eachCube == eachCubeOnRotatingPlane )
-                    .posOnCube = rotatedEachCubeWorldPos.Round();
-                // Debug.Log(eachCubeOnRotatingPlane.posOnCube);
-            }
-
-            if (planeData.isUndoRotate == false)
-            {
-                rotatedPlaneStack.Push(planeData);
-            }
-        }
-        private Vector2 MultipleRotationMatrix( Vector2 matrix, float radian )
-        {
-            Vector2 rotatedMatrix = new Vector2
-            (
-                matrix.x * Mathf.Cos(radian) + matrix.y * Mathf.Sin(radian),
-                matrix.x * -Mathf.Sin(radian) + matrix.y * Mathf.Cos(radian)
-            );
-            return rotatedMatrix;
         }
 
     }

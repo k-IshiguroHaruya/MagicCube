@@ -47,7 +47,7 @@ namespace MagicCube
             cubeView.onChangedForRotatePlaneTrigger()
                 .Subscribe( planeData => cubeModel.SetEachCubesParentPlane(planeData) );
             cubeView.onFinishedPlaneRotateTrigger()
-                .Subscribe( planeData => cubeModel.ReleaseEachCubesPlane(planeData) );
+                .Subscribe( planeData => cubeModel.OnFinishedPlaneRotate(planeData) );
             cubeView.onClickUndoButtonTrigger()
                 .Subscribe( _ => cubeModel.UndoRotatePlane() );
 
