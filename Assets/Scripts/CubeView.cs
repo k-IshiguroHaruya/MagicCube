@@ -201,8 +201,8 @@ namespace MagicCube
                         float deltaX = (Input.mousePosition.x - lastMousePos.x) / Screen.width;
                         float deltaY = (Input.mousePosition.y - lastMousePos.y) / Screen.height;
                         RotatePlane( Vector3.Dot( druggingEachCubeAxisVectorOnScreen, new Vector2( deltaX, deltaY )) );
+                        lastMousePos = Input.mousePosition;
                     }
-                    lastMousePos = Input.mousePosition;
                 }, () =>
                 {
                     if (isRotatingPlane == true)

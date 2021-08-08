@@ -18,6 +18,8 @@ namespace MagicCube
         public IObservable<RaycastHit> onRayCastHitSurfaceTrigger() => _onRayCastHitSurfaceTrigger;
         private readonly Subject<Unit> _onButtonDownScreenTrigger = new Subject<Unit>();
         public IObservable<Unit> onButtonDownScreenTrigger() => _onButtonDownScreenTrigger;
+        private ReactiveProperty<float> _zoom = new ReactiveProperty<float>();
+        public IObservable<float> zoom { get => _zoom; }
 
         private bool isRotatingPlane;
 
@@ -52,6 +54,7 @@ namespace MagicCube
         public void StartGame()
         {
             ObserveMouseButtonDown();
+            ObserveMouseScrollWheel();
         }
 
         private void ObserveMouseButtonDown()
@@ -75,6 +78,16 @@ namespace MagicCube
                     {
                         _onButtonDownScreenTrigger.OnNext(Unit.Default);
                     }
+                })
+                .AddTo(this);
+        }
+
+        private void ObserveMouseScrollWheel()
+        {
+            Observable.EveryUpdate()
+                .Subscribe( _ =>
+                {
+                    _zoom.Value = Input.GetAxis("Mouse ScrollWheel");
                 })
                 .AddTo(this);
         }

@@ -28,7 +28,7 @@ namespace MagicCube
         public void OnCubeSizeChanged(int size)
         {
             this.transform
-                .DOMove( positionMarginVector * size * 1.5f, 0.5f )
+                .DOMove( positionMargin + positionMarginVector * (size-1) * 2f, 0.5f )
                 .SetEase(Ease.OutQuint);
         }
 
@@ -84,10 +84,14 @@ namespace MagicCube
                 })
                 .AddTo(this);
         }
-
         private void RotateCamera( Vector3 rotateAxis, float deltaAngle )
         {
             this.transform.RotateAround( Vector3.zero, rotateAxis, deltaAngle );
+        }
+
+        public void Zoom(float zoom)
+        {
+            Camera.main.transform.position += Camera.main.transform.forward * zoom;
         }
 
     }

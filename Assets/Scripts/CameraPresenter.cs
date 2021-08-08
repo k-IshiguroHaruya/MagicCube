@@ -29,6 +29,8 @@ namespace MagicCube
 
             screenView.onButtonDownScreenTrigger()
                 .Subscribe( _ => cameraView.OnDrugScreen() );
+            screenView.zoom
+                .Subscribe( zoom => cameraView.Zoom(zoom) );
         }
 
     }
