@@ -1360,7 +1360,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Rotate
+  m_Text: Scramble
 --- !u!222 &1081287975
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1382,7 +1382,7 @@ GameObject:
   - component: {fileID: 1147970665}
   - component: {fileID: 1147970664}
   m_Layer: 5
-  m_Name: Debug Rotate Button
+  m_Name: Debug Scramble Button
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1406,7 +1406,7 @@ RectTransform:
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: -200, y: -200}
-  m_SizeDelta: {x: 150, y: 150}
+  m_SizeDelta: {x: 175, y: 150}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1147970664
 MonoBehaviour:
@@ -1452,7 +1452,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1796126847}
-        m_MethodName: OnClickRotateButton
+        m_MethodName: OnClickScrambleButton
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

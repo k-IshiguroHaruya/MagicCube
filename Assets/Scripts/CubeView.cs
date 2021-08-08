@@ -52,10 +52,11 @@ namespace MagicCube
         public IObservable<PlaneData> onFinishedPlaneRotateTrigger() => _onFinishedPlaneRotateTrigger;
         private readonly Subject<Unit> _onClickUndoButtonTrigger = new Subject<Unit>();
         public IObservable<Unit> onClickUndoButtonTrigger() => _onClickUndoButtonTrigger;
-        private readonly Subject<Unit> _onClickRotateButtonTrigger = new Subject<Unit>();
-        public IObservable<Unit> onClickRotateButtonTrigger() => _onClickRotateButtonTrigger;
+        private readonly Subject<Unit> _onClickScrambleButtonTrigger = new Subject<Unit>();
+        public IObservable<Unit> onClickScrambleButtonTrigger() => _onClickScrambleButtonTrigger;
+        private readonly Subject<bool> _onToggleIsRotatingPlaneTrigger = new Subject<bool>();
+        public IObservable<bool> onToggleIsRotatingPlaneTrigger() => _onToggleIsRotatingPlaneTrigger;
         
-
         private float eachCubeMargin;
         private float cubeSize;
         private Vector3 parentCubeCenter;
@@ -115,13 +116,18 @@ namespace MagicCube
             }
             _onClickUndoButtonTrigger.OnNext(Unit.Default);
         }
-        public void OnClickRotateButton()
+        public void OnClickScrambleButton()
         {
             if (isRotatingPlane)
             {
                 return;
             }
-            _onClickRotateButtonTrigger.OnNext(Unit.Default);
+            _onClickScrambleButtonTrigger.OnNext(Unit.Default);
+        }
+
+        public void SetIsRotatingPlane(bool isRotatingPlane)
+        {
+            this.isRotatingPlane = isRotatingPlane;
         }
 
         public void InitCube()
@@ -281,6 +287,8 @@ namespace MagicCube
 
         private void ComplementRotatePlane()
         {
+            _onToggleIsRotatingPlaneTrigger.OnNext(true);
+            
             float deltaPlaneRotate = (forRotatePlaneData.transform.localEulerAngles - planeEulerAnglesOnRotateStart).magnitude;
             int arrangedDelta = (int)deltaPlaneRotate + 45;
             arrangedDelta = arrangedDelta >= 360 ? arrangedDelta - 360 : arrangedDelta;
@@ -307,7 +315,6 @@ namespace MagicCube
                     break;
             }
 
-            isRotatingPlane = true;
             planeData.transform
                 .DOLocalRotate( targetEulerAngles, animationDuration, RotateMode.Fast )
                 .SetEase(Ease.OutQuint)
@@ -315,7 +322,6 @@ namespace MagicCube
                 {
                     planeData.baseEulerAngles = targetEulerAngles;
                     _onFinishedPlaneRotateTrigger.OnNext(planeData);
-                    isRotatingPlane = false;
                 });
         }
 

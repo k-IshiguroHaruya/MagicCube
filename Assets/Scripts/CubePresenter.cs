@@ -37,6 +37,8 @@ namespace MagicCube
                 .Subscribe( planeData => cubeView.RotatePlaneAnimation(planeData, 0.5f) );
             cubeModel.onRotatePlaneFromDataTrigger()
                 .Subscribe( planeData => cubeView.RotatePlaneAnimation(planeData, 0.05f) );
+            cubeModel.isRotatingPlane
+                .Subscribe( flag => cubeView.SetIsRotatingPlane(flag) );
             
             cubeView.onStartCubeViewTrigger()
                 .Subscribe( transform => cubeModel.SetParentCubeTransform(transform) );
@@ -54,8 +56,10 @@ namespace MagicCube
                 .Subscribe( planeData => cubeModel.OnFinishedPlaneRotate(planeData) );
             cubeView.onClickUndoButtonTrigger()
                 .Subscribe( _ => cubeModel.UndoRotatePlane() );
-            cubeView.onClickRotateButtonTrigger()
-                .Subscribe( _ => cubeModel.RotatePlaneFromData() );
+            cubeView.onClickScrambleButtonTrigger()
+                .Subscribe( _ => cubeModel.ScramblePlane() );
+            cubeView.onToggleIsRotatingPlaneTrigger()
+                .Subscribe( isRotatingPlane => cubeModel.SetIsRotatingPlane(isRotatingPlane) );
 
             screenModel.screenType
                 .Subscribe( screenType =>

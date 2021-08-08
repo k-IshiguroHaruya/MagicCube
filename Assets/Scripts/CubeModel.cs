@@ -15,6 +15,7 @@ namespace MagicCube
         public int rotatedNum;
         public Vector3 baseEulerAngles;
         public bool isNeedUndoLog;
+        public bool isScramble;
     }
 
     public enum Axis
@@ -36,11 +37,15 @@ namespace MagicCube
         public IObservable<PlaneData> undoRotatePlaneTrigger() => _undoRotatePlaneTrigger;
         private readonly Subject<PlaneData> _onRotatePlaneFromDataTrigger = new Subject<PlaneData>();
         public IObservable<PlaneData> onRotatePlaneFromDataTrigger() => _onRotatePlaneFromDataTrigger;
+        private readonly ReactiveProperty<bool> _isRotatingPlane = new ReactiveProperty<bool>();
+        public IReadOnlyReactiveProperty<bool> isRotatingPlane { get => _isRotatingPlane; }
 
         private Transform parentCubeTransform;
         private Transform forRotatePlane;
         private List<EachCubeController> eachCubesOnRotatingPlane;
         private Stack<PlaneData> rotatedPlaneStack = new Stack<PlaneData>();
+        private int scrambleNum;
+        private int scrambleCount;
 
 
         public void SetParentCubeTransform(Transform parentCubeTransform)
@@ -53,9 +58,16 @@ namespace MagicCube
             this.forRotatePlane = forRotatePlane;
         }
 
+        public void SetIsRotatingPlane(bool isRotatingPlane)
+        {
+            _isRotatingPlane.Value = isRotatingPlane;
+        }
+
         public void SetCubeSize(int cubeSize)
         {
             _cubeSize.Value = cubeSize;
+            scrambleNum = 5;
+            scrambleNum *= (_cubeSize.Value*_cubeSize.Value);
 
             foreach( EachCubeController eachCube in _eachCubes )
             {
@@ -145,6 +157,15 @@ namespace MagicCube
                 eachCube.transform.parent = parentCubeTransform;
                 eachCube.transform.position.Round();
             }
+
+            if (planeData.isScramble == true)
+            {
+                ScramblePlane();
+            }
+            else
+            {
+                _isRotatingPlane.Value = false;
+            }
         }
 
         public void UndoRotatePlane()
@@ -153,6 +174,8 @@ namespace MagicCube
             {
                 return;
             }
+            _isRotatingPlane.Value = true;
+
             PlaneData undoPlaneData = rotatedPlaneStack.Pop();
             undoPlaneData.rotatedNum = 4 - undoPlaneData.rotatedNum;
             undoPlaneData.isNeedUndoLog = false;
@@ -161,9 +184,25 @@ namespace MagicCube
             SetEachCubesParentPlane(undoPlaneData);
             _undoRotatePlaneTrigger.OnNext(undoPlaneData);
         }
-        public void RotatePlaneFromData()
+
+        public void ScramblePlane()
         {
             PlaneData planeData = new PlaneData();
+            planeData.isScramble = true;
+
+            if (scrambleCount < scrambleNum)
+            {
+                _isRotatingPlane.Value = true;
+                RotatePlaneFromData(planeData);
+                scrambleCount++;
+            }
+            else
+            {
+                _isRotatingPlane.Value = false;
+            }
+        }
+        private void RotatePlaneFromData(PlaneData planeData)
+        {
             planeData.transform = forRotatePlane;
             planeData.axis = (Axis)Enum.ToObject(typeof(Axis), UnityEngine.Random.Range(0, 3));
             switch(planeData.axis)
