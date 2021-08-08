@@ -34,7 +34,7 @@ namespace MagicCube
                 .ObserveRemove()
                 .Subscribe( eachCubes => cubeView.DestoryUnnecessaryCubes(eachCubes.Value) );
             cubeModel.undoRotatePlaneTrigger()
-                .Subscribe( planeData => cubeView.RotatePlaneAnimation(planeData, 0.5f) );
+                .Subscribe( planeData => cubeView.RotatePlaneAnimation(planeData, 0.05f) );
             cubeModel.onRotatePlaneFromDataTrigger()
                 .Subscribe( planeData => cubeView.RotatePlaneAnimation(planeData, 0.05f) );
             cubeModel.isRotatingPlane

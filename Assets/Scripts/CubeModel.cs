@@ -3,6 +3,7 @@ using UniRx;
 using UnityEngine;
 using System.Collections.Generic;
 using System;
+using System.Linq;
 
 namespace MagicCube
 {
@@ -44,8 +45,9 @@ namespace MagicCube
         private Transform forRotatePlane;
         private List<EachCubeController> eachCubesOnRotatingPlane;
         private Stack<PlaneData> rotatedPlaneStack = new Stack<PlaneData>();
-        private int scrambleNum;
+        private int scrambleNum = 2;
         private int scrambleCount;
+        private List<Transform> eachCubeTransforms;
 
 
         public void SetParentCubeTransform(Transform parentCubeTransform)
@@ -66,8 +68,7 @@ namespace MagicCube
         public void SetCubeSize(int cubeSize)
         {
             _cubeSize.Value = cubeSize;
-            scrambleNum = 5;
-            scrambleNum *= (_cubeSize.Value*_cubeSize.Value);
+            scrambleNum = (_cubeSize.Value*_cubeSize.Value*_cubeSize.Value);
 
             foreach( EachCubeController eachCube in _eachCubes )
             {
@@ -96,6 +97,7 @@ namespace MagicCube
                     _eachCubes.RemoveAt(i);
                 }
             }
+            eachCubeTransforms = _eachCubes.Select( eachCube => eachCube.transform ).ToList();
         }
 
         public void SetDruggingEachCube(EachCubeController eachCube)
@@ -166,6 +168,12 @@ namespace MagicCube
             {
                 _isRotatingPlane.Value = false;
             }
+
+            // if ( planeData.isNeedUndoLog == true && planeData.isScramble == false ) ほんとはこっち
+            if( planeData.isScramble == false )
+            {
+                IsCorrect();
+            }
         }
 
         public void UndoRotatePlane()
@@ -179,6 +187,7 @@ namespace MagicCube
             PlaneData undoPlaneData = rotatedPlaneStack.Pop();
             undoPlaneData.rotatedNum = 4 - undoPlaneData.rotatedNum;
             undoPlaneData.isNeedUndoLog = false;
+            undoPlaneData.isScramble = false;
             undoPlaneData.transform.localRotation = undoPlaneData.localRotation;
 
             SetEachCubesParentPlane(undoPlaneData);
@@ -225,6 +234,26 @@ namespace MagicCube
 
             SetEachCubesParentPlane(planeData);
             _onRotatePlaneFromDataTrigger.OnNext(planeData);
+        }
+
+        private bool IsCorrect()
+        {
+            int[] baseEulerAnglesInt = new int[]{ Mathf.RoundToInt(eachCubeTransforms[0].localEulerAngles.x), Mathf.RoundToInt(eachCubeTransforms[0].localEulerAngles.y), Mathf.RoundToInt(eachCubeTransforms[0].localEulerAngles.z) };
+            foreach( Transform transform in eachCubeTransforms )
+            {
+                int eulerX = Mathf.RoundToInt(transform.localEulerAngles.x);
+                int eulerY = Mathf.RoundToInt(transform.localEulerAngles.y);
+                int eulerZ = Mathf.RoundToInt(transform.localEulerAngles.z);
+                eulerX = eulerX == 360 ? 0 : eulerX;
+                eulerY = eulerY == 360 ? 0 : eulerY;
+                eulerZ = eulerZ == 360 ? 0 : eulerZ;
+                if ( baseEulerAnglesInt[0] != eulerX || baseEulerAnglesInt[1] != eulerY || baseEulerAnglesInt[2] != eulerZ )
+                {
+                    return false;
+                }
+            }
+            Debug.Log("正解！！");
+            return true;
         }
 
     }

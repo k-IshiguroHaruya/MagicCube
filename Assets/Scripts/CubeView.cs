@@ -9,11 +9,6 @@ using System.Linq;
 
 namespace MagicCube
 {
-    public enum CubeRotateStatus
-    {
-        ニュートラル,
-        回転中,
-    }
     public struct DruggingEachCubeAxisData
     {
         public Vector3 worldPosition { get; set; }
@@ -60,7 +55,6 @@ namespace MagicCube
         private float eachCubeMargin;
         private float cubeSize;
         private Vector3 parentCubeCenter;
-        private CubeRotateStatus cubeRotateStatus;
         private Vector2 hitSurfacePosOnScreen;
         private Vector3 hitSurfacePos;
         private Vector3 cubeSurfaceAxis;
@@ -212,7 +206,6 @@ namespace MagicCube
         private void OnDrugCube(Vector2 onButtonDownMousePos)
         {
             Vector2 mouseVector = Vector2.zero;
-            cubeRotateStatus = CubeRotateStatus.ニュートラル;
             Vector2 druggingEachCubeAxisVectorOnScreen = Vector2.zero;
             Vector2 lastMousePos = onButtonDownMousePos;
 
@@ -223,29 +216,29 @@ namespace MagicCube
                 .Subscribe( _ =>
                 {
                     mouseVector = new Vector2(Input.mousePosition.x, Input.mousePosition.y)  - onButtonDownMousePos;
-                    switch(cubeRotateStatus)
+                    if (isRotatingPlane == false)
                     {
-                        case CubeRotateStatus.ニュートラル:
-                            foreach( DruggingEachCubeAxisData data in druggingEachCubeAxisDatas )
+                        foreach( DruggingEachCubeAxisData data in druggingEachCubeAxisDatas )
+                        {
+                            if( (Vector2.Dot(data.screenVector.normalized, mouseVector.normalized) * mouseVector).magnitude - data.screenVector.magnitude >= 1f )
                             {
-                                if( (Vector2.Dot(data.screenVector.normalized, mouseVector.normalized) * mouseVector).magnitude - data.screenVector.magnitude >= 1f )
-                                {
-                                    cubeRotateStatus = CubeRotateStatus.回転中;
-                                    druggingEachCubeAxisVectorOnScreen = data.screenVector;
-                                    SetForRotatePlane( mouseVector.magnitude, data.worldVector );
-                                }
+                                _onToggleIsRotatingPlaneTrigger.OnNext(true);
+                                druggingEachCubeAxisVectorOnScreen = data.screenVector;
+                                SetForRotatePlane( mouseVector.magnitude, data.worldVector );
+                                break;
                             }
-                            break;
-                        case CubeRotateStatus.回転中:
-                            float deltaX = (Input.mousePosition.x - lastMousePos.x) / Screen.width;
-                            float deltaY = (Input.mousePosition.y - lastMousePos.y) / Screen.height;
-                            RotatePlane( Vector3.Dot( druggingEachCubeAxisVectorOnScreen, new Vector2( deltaX, deltaY )) );
-                            break;
+                        }
+                    }
+                    else
+                    {
+                        float deltaX = (Input.mousePosition.x - lastMousePos.x) / Screen.width;
+                        float deltaY = (Input.mousePosition.y - lastMousePos.y) / Screen.height;
+                        RotatePlane( Vector3.Dot( druggingEachCubeAxisVectorOnScreen, new Vector2( deltaX, deltaY )) );
                     }
                     lastMousePos = Input.mousePosition;
                 }, () =>
                 {
-                    if (cubeRotateStatus == CubeRotateStatus.回転中)
+                    if (isRotatingPlane == true)
                     {
                         ComplementRotatePlane(); 
                     }
@@ -286,9 +279,7 @@ namespace MagicCube
         }
 
         private void ComplementRotatePlane()
-        {
-            _onToggleIsRotatingPlaneTrigger.OnNext(true);
-            
+        {            
             float deltaPlaneRotate = (forRotatePlaneData.transform.localEulerAngles - planeEulerAnglesOnRotateStart).magnitude;
             int arrangedDelta = (int)deltaPlaneRotate + 45;
             arrangedDelta = arrangedDelta >= 360 ? arrangedDelta - 360 : arrangedDelta;
