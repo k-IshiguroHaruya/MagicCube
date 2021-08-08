@@ -1,6 +1,7 @@
 ﻿
 using VContainer.Unity;
 using UniRx;
+using System;
 
 namespace MagicCube
 {
@@ -9,12 +10,14 @@ namespace MagicCube
         private readonly CubeModel cubeModel;
         private readonly CubeView cubeView;
         private readonly ScreenModel screenModel;
+        private readonly ScreenView screenView;
 
-        public CubePresenter( CubeModel cubeModel, CubeView cubeView, ScreenModel screenModel )
+        public CubePresenter( CubeModel cubeModel, CubeView cubeView, ScreenModel screenModel, ScreenView screenView )
         {
             this.cubeModel = cubeModel;
             this.cubeView = cubeView;
             this.screenModel = screenModel;
+            this.screenView = screenView;
         }
 
         public void Initialize()
@@ -34,7 +37,7 @@ namespace MagicCube
                 .ObserveRemove()
                 .Subscribe( eachCubes => cubeView.DestoryUnnecessaryCubes(eachCubes.Value) );
             cubeModel.undoRotatePlaneTrigger()
-                .Subscribe( planeData => cubeView.RotatePlaneAnimation(planeData, 0.05f) );
+                .Subscribe( planeData => cubeView.RotatePlaneAnimation(planeData, 0.5f) );
             cubeModel.onRotatePlaneFromDataTrigger()
                 .Subscribe( planeData => cubeView.RotatePlaneAnimation(planeData, 0.05f) );
             cubeModel.isRotatingPlane
@@ -56,8 +59,6 @@ namespace MagicCube
                 .Subscribe( planeData => cubeModel.OnFinishedPlaneRotate(planeData) );
             cubeView.onClickUndoButtonTrigger()
                 .Subscribe( _ => cubeModel.UndoRotatePlane() );
-            cubeView.onClickScrambleButtonTrigger()
-                .Subscribe( _ => cubeModel.ScramblePlane() );
             cubeView.onToggleIsRotatingPlaneTrigger()
                 .Subscribe( isRotatingPlane => cubeModel.SetIsRotatingPlane(isRotatingPlane) );
 
@@ -72,9 +73,15 @@ namespace MagicCube
                         case ScreenType.メイン画面:
                             cubeView.InitOnMainScreen();
                             cubeModel.DeleteUnnecessaryCubes();
+                            Observable
+                                .Timer(TimeSpan.FromSeconds(1))
+                                .Subscribe( _ => cubeModel.ScramblePlane() );
                             break;
                     }
                 });
+            
+            screenView.onRayCastHitSurfaceTrigger()
+                .Subscribe( rayCastHit => cubeView.OnDrugCube(rayCastHit) );
         }
     }
 }

@@ -29,7 +29,6 @@ namespace MagicCube
         [SerializeField] private Slider cubeSizeSlider;
         [SerializeField] private GameObject eachCubePrefab;
         [SerializeField] private float mouseDeltaThreshold;
-        [SerializeField] private Image[] debugImages;
 
         private readonly Subject<Transform> _onStartCubeViewTrigger = new Subject<Transform>();
         public IObservable<Transform> onStartCubeViewTrigger() => _onStartCubeViewTrigger;
@@ -47,8 +46,6 @@ namespace MagicCube
         public IObservable<PlaneData> onFinishedPlaneRotateTrigger() => _onFinishedPlaneRotateTrigger;
         private readonly Subject<Unit> _onClickUndoButtonTrigger = new Subject<Unit>();
         public IObservable<Unit> onClickUndoButtonTrigger() => _onClickUndoButtonTrigger;
-        private readonly Subject<Unit> _onClickScrambleButtonTrigger = new Subject<Unit>();
-        public IObservable<Unit> onClickScrambleButtonTrigger() => _onClickScrambleButtonTrigger;
         private readonly Subject<bool> _onToggleIsRotatingPlaneTrigger = new Subject<bool>();
         public IObservable<bool> onToggleIsRotatingPlaneTrigger() => _onToggleIsRotatingPlaneTrigger;
         
@@ -78,28 +75,6 @@ namespace MagicCube
                 .OnValueChangedAsObservable()
                 .Subscribe( size => _onSliderValueChangedTrigger.OnNext( (int)size ) )
                 .AddTo(this);
-
-            Observable.EveryUpdate()
-                .Where( _ => Input.GetMouseButtonDown(0) && isRotatingPlane == false )
-                .Subscribe( _ =>
-                {
-                    Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-                    RaycastHit hit_info = new RaycastHit();
-                    float max_distance = 100f;
-
-                    if ( Physics.Raycast(ray, out hit_info, max_distance) )
-                    {
-                        if (hit_info.transform.tag == "Surface")
-                        {
-                            hitSurfacePosOnScreen = Input.mousePosition;
-                            hitSurfacePos = hit_info.point;
-                            cubeSurfaceAxis = hit_info.transform.parent.transform.position - hit_info.transform.position;
-                            OnDrugCube(Input.mousePosition);
-                            _onButtonDownOnEachCubeTrigger.OnNext(hit_info.transform.parent.GetComponent<EachCubeController>());
-                        }
-                    }
-                })
-                .AddTo(this);
         }
 
         public void OnClickUndoButton()
@@ -109,14 +84,6 @@ namespace MagicCube
                 return;
             }
             _onClickUndoButtonTrigger.OnNext(Unit.Default);
-        }
-        public void OnClickScrambleButton()
-        {
-            if (isRotatingPlane)
-            {
-                return;
-            }
-            _onClickScrambleButtonTrigger.OnNext(Unit.Default);
         }
 
         public void SetIsRotatingPlane(bool isRotatingPlane)
@@ -196,18 +163,18 @@ namespace MagicCube
                 .Where( data => data.screenVector != Vector2.zero )
                 .ToList();
 
-            // デバグ用
-            for(int i=0; i<druggingEachCubeAxisDatas.Count; i++)
-            {
-                debugImages[i].rectTransform.position = new Vector2( druggingEachCubeAxisDatas[i].screenVector.x, druggingEachCubeAxisDatas[i].screenVector.y ) + hitSurfacePosOnScreen;
-            }
         }
 
-        private void OnDrugCube(Vector2 onButtonDownMousePos)
+        public void OnDrugCube(RaycastHit hit)
         {
+            Vector2 onButtonDownMousePos = Input.mousePosition;
             Vector2 mouseVector = Vector2.zero;
             Vector2 druggingEachCubeAxisVectorOnScreen = Vector2.zero;
             Vector2 lastMousePos = onButtonDownMousePos;
+
+            hitSurfacePosOnScreen = onButtonDownMousePos;
+            hitSurfacePos = hit.point;
+            cubeSurfaceAxis = hit.transform.parent.transform.position - hit.transform.position;
 
             var mouseUp = Observable.EveryUpdate()
                 .Where( _ => Input.GetMouseButtonUp(0) );
@@ -215,7 +182,7 @@ namespace MagicCube
                 .TakeUntil(mouseUp)
                 .Subscribe( _ =>
                 {
-                    mouseVector = new Vector2(Input.mousePosition.x, Input.mousePosition.y)  - onButtonDownMousePos;
+                    mouseVector = new Vector2(Input.mousePosition.x, Input.mousePosition.y) - onButtonDownMousePos;
                     if (isRotatingPlane == false)
                     {
                         foreach( DruggingEachCubeAxisData data in druggingEachCubeAxisDatas )
@@ -244,6 +211,8 @@ namespace MagicCube
                     }
                 })
                 .AddTo(this);
+
+            _onButtonDownOnEachCubeTrigger.OnNext(hit.transform.parent.GetComponent<EachCubeController>());
         }
         private void SetForRotatePlane(float delta, Vector3 basisVector)
         {

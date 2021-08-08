@@ -14,6 +14,9 @@ namespace MagicCube
             builder.RegisterEntryPoint<ScreenPresenter>(Lifetime.Singleton);
             builder.Register<ScreenModel>(Lifetime.Singleton);
             builder.RegisterComponentInHierarchy<ScreenView>();
+
+            builder.RegisterEntryPoint<CameraPresenter>(Lifetime.Singleton);
+            builder.RegisterComponentInHierarchy<CameraView>();
         }
     }
 

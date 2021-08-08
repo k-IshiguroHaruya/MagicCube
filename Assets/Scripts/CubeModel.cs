@@ -40,6 +40,10 @@ namespace MagicCube
         public IObservable<PlaneData> onRotatePlaneFromDataTrigger() => _onRotatePlaneFromDataTrigger;
         private readonly ReactiveProperty<bool> _isRotatingPlane = new ReactiveProperty<bool>();
         public IReadOnlyReactiveProperty<bool> isRotatingPlane { get => _isRotatingPlane; }
+        private readonly Subject<Unit> _onFinishScranblePlaneTrigger = new Subject<Unit>();
+        public IObservable<Unit> onFinishScranblePlaneTrigger() => _onFinishScranblePlaneTrigger;
+        private readonly Subject<Unit> _onClearMagicCubeTrigger = new Subject<Unit>();
+        public IObservable<Unit> onClearMagicCubeTrigger() => _onClearMagicCubeTrigger;
 
         private Transform parentCubeTransform;
         private Transform forRotatePlane;
@@ -208,6 +212,7 @@ namespace MagicCube
             else
             {
                 _isRotatingPlane.Value = false;
+                _onFinishScranblePlaneTrigger.OnNext(Unit.Default);
             }
         }
         private void RotatePlaneFromData(PlaneData planeData)
@@ -253,6 +258,7 @@ namespace MagicCube
                 }
             }
             Debug.Log("正解！！");
+            _onClearMagicCubeTrigger.OnNext(Unit.Default);
             return true;
         }
 
