@@ -11,11 +11,10 @@ namespace MagicCube
         public Transform transform;
         public Axis axis;
         public Vector3 druggingEachCubePosition;
-        public int plusMinus;
         public Quaternion localRotation;
         public int rotatedNum;
         public Vector3 baseEulerAngles;
-        public bool isUndoRotate;
+        public bool isNeedUndoLog;
     }
 
     public enum Axis
@@ -35,15 +34,23 @@ namespace MagicCube
         public IReadOnlyReactiveProperty<EachCubeController> druggingEachCube { get => _druggingEachCube; }
         private readonly Subject<PlaneData> _undoRotatePlaneTrigger = new Subject<PlaneData>();
         public IObservable<PlaneData> undoRotatePlaneTrigger() => _undoRotatePlaneTrigger;
+        private readonly Subject<PlaneData> _onRotatePlaneFromDataTrigger = new Subject<PlaneData>();
+        public IObservable<PlaneData> onRotatePlaneFromDataTrigger() => _onRotatePlaneFromDataTrigger;
 
         private Transform parentCubeTransform;
+        private Transform forRotatePlane;
         private List<EachCubeController> eachCubesOnRotatingPlane;
         private Stack<PlaneData> rotatedPlaneStack = new Stack<PlaneData>();
 
 
-        public void SetParentCubeTransform(Transform transform)
+        public void SetParentCubeTransform(Transform parentCubeTransform)
         {
-            parentCubeTransform = transform;
+            this.parentCubeTransform = parentCubeTransform;
+        }
+
+        public void SetForRotatePlane(Transform forRotatePlane)
+        {
+            this.forRotatePlane = forRotatePlane;
         }
 
         public void SetCubeSize(int cubeSize)
@@ -128,7 +135,7 @@ namespace MagicCube
 
         public void OnFinishedPlaneRotate(PlaneData planeData)
         {
-            if( planeData.rotatedNum != 0 && planeData.isUndoRotate == false)
+            if( planeData.rotatedNum != 0 && planeData.isNeedUndoLog == true)
             {
                 planeData.localRotation = planeData.transform.localRotation;
                 rotatedPlaneStack.Push(planeData);
@@ -148,12 +155,37 @@ namespace MagicCube
             }
             PlaneData undoPlaneData = rotatedPlaneStack.Pop();
             undoPlaneData.rotatedNum = 4 - undoPlaneData.rotatedNum;
-            undoPlaneData.isUndoRotate = true;
+            undoPlaneData.isNeedUndoLog = false;
             undoPlaneData.transform.localRotation = undoPlaneData.localRotation;
 
             SetEachCubesParentPlane(undoPlaneData);
             _undoRotatePlaneTrigger.OnNext(undoPlaneData);
-            Debug.Log("Undo");
+        }
+        public void RotatePlaneFromData()
+        {
+            PlaneData planeData = new PlaneData();
+            planeData.transform = forRotatePlane;
+            planeData.axis = (Axis)Enum.ToObject(typeof(Axis), UnityEngine.Random.Range(0, 3));
+            switch(planeData.axis)
+            {
+                case Axis.X:
+                    forRotatePlane.forward = parentCubeTransform.right;
+                    break;
+                case Axis.Y:
+                    forRotatePlane.forward = parentCubeTransform.up;
+                    break;
+                case Axis.Z:
+                    forRotatePlane.forward = parentCubeTransform.forward;
+                    break;
+            }
+            planeData.druggingEachCubePosition = _eachCubes[ UnityEngine.Random.Range(0, _eachCubes.Count) ].transform.position;
+            planeData.rotatedNum = UnityEngine.Random.Range(1, 4);
+            planeData.baseEulerAngles = forRotatePlane.localEulerAngles;
+            planeData.isNeedUndoLog = true;
+            planeData.localRotation = forRotatePlane.localRotation;
+
+            SetEachCubesParentPlane(planeData);
+            _onRotatePlaneFromDataTrigger.OnNext(planeData);
         }
 
     }

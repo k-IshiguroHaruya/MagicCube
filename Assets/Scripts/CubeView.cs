@@ -38,6 +38,8 @@ namespace MagicCube
 
         private readonly Subject<Transform> _onStartCubeViewTrigger = new Subject<Transform>();
         public IObservable<Transform> onStartCubeViewTrigger() => _onStartCubeViewTrigger;
+        private readonly Subject<Transform> _onInitForRotatePlaneTrigger = new Subject<Transform>();
+        public IObservable<Transform> onInitForRotatePlaneTrigger() => _onInitForRotatePlaneTrigger;
         private readonly Subject<int> _onSliderValueChangedTrigger = new Subject<int>();
         public IObservable<int> onSliderValueChangedTrigger() => _onSliderValueChangedTrigger;
         private readonly Subject<EachCubeController> _onInitEachCubeControllerTrigger = new Subject<EachCubeController>();
@@ -50,6 +52,9 @@ namespace MagicCube
         public IObservable<PlaneData> onFinishedPlaneRotateTrigger() => _onFinishedPlaneRotateTrigger;
         private readonly Subject<Unit> _onClickUndoButtonTrigger = new Subject<Unit>();
         public IObservable<Unit> onClickUndoButtonTrigger() => _onClickUndoButtonTrigger;
+        private readonly Subject<Unit> _onClickRotateButtonTrigger = new Subject<Unit>();
+        public IObservable<Unit> onClickRotateButtonTrigger() => _onClickRotateButtonTrigger;
+        
 
         private float eachCubeMargin;
         private float cubeSize;
@@ -58,7 +63,6 @@ namespace MagicCube
         private Vector2 hitSurfacePosOnScreen;
         private Vector3 hitSurfacePos;
         private Vector3 cubeSurfaceAxis;
-        // private List<Vector3> druggingEachCubeAxisVectorsOnScreen;
         private EachCubeController druggingEachCube;
         private List<DruggingEachCubeAxisData> druggingEachCubeAxisDatas;
         private PlaneData forRotatePlaneData;
@@ -111,6 +115,14 @@ namespace MagicCube
             }
             _onClickUndoButtonTrigger.OnNext(Unit.Default);
         }
+        public void OnClickRotateButton()
+        {
+            if (isRotatingPlane)
+            {
+                return;
+            }
+            _onClickRotateButtonTrigger.OnNext(Unit.Default);
+        }
 
         public void InitCube()
         {
@@ -154,6 +166,12 @@ namespace MagicCube
             Destroy(eachCube.gameObject);
         }
 
+        public void InitOnMainScreen()
+        {
+            forRotatePlaneData.transform.localPosition = -parentCubeCenter;
+            _onInitForRotatePlaneTrigger.OnNext(forRotatePlaneData.transform);
+        }
+
         public void OnSetDruggingEachCube(EachCubeController eachCube)
         {
             druggingEachCube = eachCube;
@@ -191,7 +209,6 @@ namespace MagicCube
             cubeRotateStatus = CubeRotateStatus.ニュートラル;
             Vector2 druggingEachCubeAxisVectorOnScreen = Vector2.zero;
             Vector2 lastMousePos = onButtonDownMousePos;
-            forRotatePlaneData.transform.localPosition = -parentCubeCenter;
 
             var mouseUp = Observable.EveryUpdate()
                 .Where( _ => Input.GetMouseButtonUp(0) );
@@ -241,19 +258,16 @@ namespace MagicCube
             {
                 forRotatePlaneData.transform.forward = this.transform.right * dots.x;
                 forRotatePlaneData.axis = Axis.X;
-                forRotatePlaneData.plusMinus = (int)dots.x;
             }
             if( maxDot == absDots.y )
             {
                 forRotatePlaneData.transform.forward = this.transform.up * dots.y;
                 forRotatePlaneData.axis = Axis.Y;
-                forRotatePlaneData.plusMinus = (int)dots.y;
             }
             if( maxDot == absDots.z )
             {
                 forRotatePlaneData.transform.forward = this.transform.forward * dots.z;
                 forRotatePlaneData.axis = Axis.Z;
-                forRotatePlaneData.plusMinus = (int)dots.z;
             }
             planeEulerAnglesOnRotateStart = forRotatePlaneData.transform.localEulerAngles;
             forRotatePlaneData.druggingEachCubePosition = druggingEachCube.transform.position;
@@ -272,12 +286,12 @@ namespace MagicCube
             arrangedDelta = arrangedDelta >= 360 ? arrangedDelta - 360 : arrangedDelta;
             forRotatePlaneData.rotatedNum = arrangedDelta / 90;
             forRotatePlaneData.baseEulerAngles = planeEulerAnglesOnRotateStart;
-            forRotatePlaneData.isUndoRotate = false;
+            forRotatePlaneData.isNeedUndoLog = true;
             
-            AutoRotatePlane(forRotatePlaneData);
+            RotatePlaneAnimation(forRotatePlaneData, 0.5f);
         }
 
-        public void AutoRotatePlane(PlaneData planeData)
+        public void RotatePlaneAnimation(PlaneData planeData, float animationDuration)
         {
             Vector3 targetEulerAngles = Vector3.zero;
             switch(planeData.axis)
@@ -295,11 +309,10 @@ namespace MagicCube
 
             isRotatingPlane = true;
             planeData.transform
-                .DOLocalRotate( targetEulerAngles, 0.5f, RotateMode.Fast )
+                .DOLocalRotate( targetEulerAngles, animationDuration, RotateMode.Fast )
                 .SetEase(Ease.OutQuint)
                 .OnComplete( () =>
                 {
-                    // Debug.Log("planeData.baseEulerAngles: " + planeData.baseEulerAngles + ", targetEulerAngles : " + targetEulerAngles);
                     planeData.baseEulerAngles = targetEulerAngles;
                     _onFinishedPlaneRotateTrigger.OnNext(planeData);
                     isRotatingPlane = false;
