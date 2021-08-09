@@ -9,12 +9,14 @@ namespace MagicCube
         private readonly CameraView cameraView;
         private readonly CubeView cubeView;
         private readonly ScreenView screenView;
+        private readonly ScreenModel screenModel;
 
-        public CameraPresenter( CameraView cameraView, CubeView cubeView, ScreenView screenView )
+        public CameraPresenter( CameraView cameraView, CubeView cubeView, ScreenView screenView, ScreenModel screenModel )
         {
             this.cameraView = cameraView;
             this.cubeView = cubeView;
             this.screenView = screenView;
+            this.screenModel = screenModel;
         }
         
         public void Initialize()
@@ -31,6 +33,10 @@ namespace MagicCube
                 .Subscribe( _ => cameraView.OnDrugScreen() );
             screenView.zoom
                 .Subscribe( zoom => cameraView.Zoom(zoom) );
+            
+            screenModel.screenType
+                .Where( screenType => screenType == ScreenType.ホーム画面 )
+                .Subscribe( _ => cameraView.DisposeDrugScreen() );
         }
 
     }

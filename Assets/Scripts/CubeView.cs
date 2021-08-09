@@ -48,7 +48,10 @@ namespace MagicCube
         public IObservable<Unit> onClickUndoButtonTrigger() => _onClickUndoButtonTrigger;
         private readonly Subject<bool> _onToggleIsRotatingPlaneTrigger = new Subject<bool>();
         public IObservable<bool> onToggleIsRotatingPlaneTrigger() => _onToggleIsRotatingPlaneTrigger;
+        private readonly Subject<Unit> _onDestroyCubeChildrenTrigger = new Subject<Unit>();
+        public IObservable<Unit> onDestroyCubeChildrenTrigger() => _onDestroyCubeChildrenTrigger;
         
+        private CompositeDisposable disposables;
         private float eachCubeMargin;
         private float cubeSize;
         private Vector3 parentCubeCenter;
@@ -67,7 +70,7 @@ namespace MagicCube
             cubeSizeSlider
                 .OnValueChangedAsObservable()
                 .Subscribe( size => _onSliderValueChangedTrigger.OnNext( (int)size ) )
-                .AddTo(this);
+                .AddTo(disposables);
         }
 
         public void OnClickUndoButton()
@@ -86,6 +89,11 @@ namespace MagicCube
 
         public void InitCube()
         {
+            if ( disposables != null )
+            {
+                disposables.Dispose();
+            }
+
             int max = (int)cubeSizeSlider.maxValue;
             eachCubeMargin = eachCubePrefab.transform.localScale.x;
             for(int x=0; x<max; x++)
@@ -111,7 +119,10 @@ namespace MagicCube
             forRotatePlaneData.transform.name = "For Rotate Plane";
             _onInitCubeTrigger.OnNext(this.transform);
             _onSliderValueChangedTrigger.OnNext( (int)cubeSizeSlider.value );
+            
+            disposables = new CompositeDisposable();
             SetSubscribe();
+            OnChangeCubeSize((int)cubeSizeSlider.value);
         }
 
         public void OnChangeCubeSize(int cubeSize)
@@ -173,7 +184,7 @@ namespace MagicCube
 
             var mouseUp = Observable.EveryUpdate()
                 .Where( _ => Input.GetMouseButtonUp(0) );
-            var drug = Observable.EveryUpdate()
+            Observable.EveryUpdate()
                 .TakeUntil(mouseUp)
                 .Subscribe( _ =>
                 {
@@ -205,7 +216,7 @@ namespace MagicCube
                         ComplementRotatePlane(); 
                     }
                 })
-                .AddTo(this);
+                .AddTo(disposables);
 
             _onButtonDownOnEachCubeTrigger.OnNext(hit.transform.parent.GetComponent<EachCubeController>());
         }
@@ -278,6 +289,21 @@ namespace MagicCube
                     planeData.baseEulerAngles = targetEulerAngles;
                     _onFinishedPlaneRotateTrigger.OnNext(planeData);
                 });
+        }
+
+        public void DestroyCubeChildren(IReadOnlyReactiveCollection<EachCubeController> eachCubes)
+        {
+            if (eachCubes.Count == 0)
+            {
+                return;
+            }
+            foreach( EachCubeController eachCube in eachCubes )
+            {
+                Destroy(eachCube.gameObject);
+                Destroy(forRotatePlaneData.transform.gameObject);
+            }
+            this.transform.position = Vector3.zero;
+            _onDestroyCubeChildrenTrigger.OnNext(Unit.Default);
         }
 
     }

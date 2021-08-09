@@ -30,7 +30,7 @@ namespace MagicCube
     {
         private readonly ReactiveProperty<int> _cubeSize = new ReactiveProperty<int>();
         public IReadOnlyReactiveProperty<int> cubeSize { get => _cubeSize; }
-        private readonly ReactiveCollection<EachCubeController> _eachCubes = new ReactiveCollection<EachCubeController>();
+        private ReactiveCollection<EachCubeController> _eachCubes = new ReactiveCollection<EachCubeController>();
         public IReadOnlyReactiveCollection<EachCubeController> eachCubes { get => _eachCubes; }
         private readonly ReactiveProperty<EachCubeController> _druggingEachCube = new ReactiveProperty<EachCubeController>();
         public IReadOnlyReactiveProperty<EachCubeController> druggingEachCube { get => _druggingEachCube; }
@@ -260,6 +260,13 @@ namespace MagicCube
             Debug.Log("正解！！");
             _onClearMagicCubeTrigger.OnNext(Unit.Default);
             return true;
+        }
+
+        public void OnDestroyCubeChildren()
+        {
+            _eachCubes = new ReactiveCollection<EachCubeController>();
+            parentCubeTransform = null;
+            scrambleCount = 0;
         }
 
     }

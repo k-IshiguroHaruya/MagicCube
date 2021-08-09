@@ -61,13 +61,19 @@ namespace MagicCube
                 .Subscribe( _ => cubeModel.UndoRotatePlane() );
             cubeView.onToggleIsRotatingPlaneTrigger()
                 .Subscribe( isRotatingPlane => cubeModel.SetIsRotatingPlane(isRotatingPlane) );
+            cubeView.onDestroyCubeChildrenTrigger()
+                .Subscribe( _ => cubeModel.OnDestroyCubeChildren() );
 
             screenModel.screenType
                 .Subscribe( screenType =>
                 {
                     switch(screenType)
                     {
+                        case ScreenType.ホーム画面:
+                            cubeView.DestroyCubeChildren( cubeModel.eachCubes );
+                            break;
                         case ScreenType.キューブサイズ調整画面:
+                            cubeView.DestroyCubeChildren( cubeModel.eachCubes );
                             cubeView.InitCube();
                             break;
                         case ScreenType.メイン画面:

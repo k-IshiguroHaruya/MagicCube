@@ -30,7 +30,7 @@ namespace MagicCube
             
             screenView.onStartScreenViewTrigger()
                 .Subscribe( _ => screenView.SetActiveHomeContinueButton( screenModel.GetIsLastGameData() ) );
-            screenView.onClickStartGameButtonTrigger()
+            screenView.onApplyChangeScreenTypeTrigger()
                 .Subscribe( screenType => screenModel.SetScreenType(screenType) );
 
             cubeModel.isRotatingPlane

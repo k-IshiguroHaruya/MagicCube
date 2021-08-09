@@ -12,16 +12,18 @@ namespace MagicCube
         [SerializeField] private Button continueButton;
         [SerializeField] private Canvas sizeAdjustmentCanvas;
         [SerializeField] private Canvas mainCanvas;
+        [SerializeField] private GameObject timerGameObject;
         [SerializeField] private Text timerText;
         [SerializeField] private Canvas menuCanvas;
         [SerializeField] private Canvas endingCanvas;
         [SerializeField] private Canvas confirmDialog;
+        [SerializeField] private int timeLimit;
 
         private readonly Subject<Unit> _onStartScreenViewTrigger = new Subject<Unit>();
         public IObservable<Unit> onStartScreenViewTrigger() => _onStartScreenViewTrigger;
 
-        private readonly Subject<ScreenType> _onClickStartGameButtonTrigger = new Subject<ScreenType>();
-        public IObservable<ScreenType> onClickStartGameButtonTrigger() => _onClickStartGameButtonTrigger;
+        private readonly Subject<ScreenType> _onApplyChangeScreenTypeTrigger = new Subject<ScreenType>();
+        public IObservable<ScreenType> onApplyChangeScreenTypeTrigger() => _onApplyChangeScreenTypeTrigger;
         private readonly Subject<RaycastHit> _onRayCastHitSurfaceTrigger = new Subject<RaycastHit>();
         public IObservable<RaycastHit> onRayCastHitSurfaceTrigger() => _onRayCastHitSurfaceTrigger;
         private readonly Subject<Unit> _onButtonDownScreenTrigger = new Subject<Unit>();
@@ -30,6 +32,7 @@ namespace MagicCube
         private ReactiveProperty<float> _zoom = new ReactiveProperty<float>();
         public IObservable<float> zoom { get => _zoom; }
 
+        private CompositeDisposable disposables;
         private bool isRotatingPlane;
 
         void Start()
@@ -58,6 +61,8 @@ namespace MagicCube
                     mainCanvas.gameObject.SetActive(false);
                     menuCanvas.gameObject.SetActive(false);
                     endingCanvas.gameObject.SetActive(false);
+                    
+                    timerGameObject.SetActive(false);
                     break;
                 case ScreenType.キューブサイズ調整画面:
                     homeCanvas.gameObject.SetActive(false);
@@ -72,6 +77,8 @@ namespace MagicCube
                     mainCanvas.gameObject.SetActive(true);
                     break;
                 case ScreenType.エンディング画面:
+                    mainCanvas.gameObject.SetActive(false);
+                    endingCanvas.gameObject.SetActive(true);
                     break;
             }
         }
@@ -83,21 +90,31 @@ namespace MagicCube
 
         public void OnClickStartButton()
         {
-            _onClickStartGameButtonTrigger.OnNext(ScreenType.キューブサイズ調整画面);
+            _onApplyChangeScreenTypeTrigger.OnNext(ScreenType.キューブサイズ調整画面);
         }
         public void OnClickStartGameButton()
         {
-            _onClickStartGameButtonTrigger.OnNext(ScreenType.メイン画面);
+            _onApplyChangeScreenTypeTrigger.OnNext(ScreenType.メイン画面);
         }
         public void OnClickBackTitleButton()
         {
-            _onClickStartGameButtonTrigger.OnNext(ScreenType.ホーム画面);
+            _onApplyChangeScreenTypeTrigger.OnNext(ScreenType.ホーム画面);
+        }
+
+        private void DisposeObserveMouses()
+        {
+            if ( disposables != null )
+            {
+                disposables.Dispose();
+            }
         }
 
         public void StartGame()
         {
+            disposables = new CompositeDisposable();
             ObserveMouseButtonDown();
             ObserveMouseScrollWheel();
+            StartTimerCountDown();
         }
 
         private void ObserveMouseButtonDown()
@@ -122,7 +139,7 @@ namespace MagicCube
                         _onButtonDownScreenTrigger.OnNext(Unit.Default);
                     }
                 })
-                .AddTo(this);
+                .AddTo(disposables);
         }
 
         private void ObserveMouseScrollWheel()
@@ -132,7 +149,30 @@ namespace MagicCube
                 {
                     _zoom.Value = Input.GetAxis("Mouse ScrollWheel");
                 })
-                .AddTo(this);
+                .AddTo(disposables);
+        }
+
+        private void StartTimerCountDown()
+        {            
+            int countDownTime = timeLimit;
+            int minutes;
+            int seconds;
+
+            Observable
+                .Interval(TimeSpan.FromSeconds(1))
+                .TakeWhile( _ => countDownTime > 0 )
+                .Subscribe( _ =>
+                {
+                    timerGameObject.SetActive(true);
+                    minutes = countDownTime / 60;
+                    seconds = countDownTime - minutes * 60;
+                    timerText.text = string.Format( "{0:00}:{1:00}", minutes, seconds );
+                    countDownTime --;
+                }, () =>
+                {
+                    _onApplyChangeScreenTypeTrigger.OnNext(ScreenType.エンディング画面);
+                })
+                .AddTo(disposables);
         }
 
     }

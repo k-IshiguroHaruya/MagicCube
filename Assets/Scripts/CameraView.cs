@@ -9,6 +9,7 @@ namespace MagicCube
     {
         [SerializeField] private Transform cubeViewTransform;
 
+        private CompositeDisposable disposables;
         private Vector3 positionMargin;
         private Quaternion rotationMargin;
         private Vector3 positionMarginVector;
@@ -34,6 +35,11 @@ namespace MagicCube
 
         public void OnDrugScreen()
         {
+            if (disposables == null)
+            {
+                disposables = new CompositeDisposable();
+            }
+
             Vector2 onButtonDownMousePos = Input.mousePosition;
             Vector2 mouseVector = Vector2.zero;
             Vector2 lastMousePos = onButtonDownMousePos;
@@ -44,7 +50,7 @@ namespace MagicCube
 
             var mouseUp = Observable.EveryUpdate()
                 .Where( _ => Input.GetMouseButtonUp(0) );
-            var drug = Observable.EveryUpdate()
+            Observable.EveryUpdate()
                 .TakeUntil(mouseUp)
                 .Subscribe( _ =>
                 {
@@ -82,7 +88,7 @@ namespace MagicCube
                 {
                     isRotatingCamera = false;
                 })
-                .AddTo(this);
+                .AddTo(disposables);
         }
         private void RotateCamera( Vector3 rotateAxis, float deltaAngle )
         {
@@ -92,6 +98,14 @@ namespace MagicCube
         public void Zoom(float zoom)
         {
             Camera.main.transform.position += Camera.main.transform.forward * zoom;
+        }
+
+        public void DisposeDrugScreen()
+        {
+            if (disposables != null)
+            {
+                disposables.Dispose();
+            }
         }
 
     }

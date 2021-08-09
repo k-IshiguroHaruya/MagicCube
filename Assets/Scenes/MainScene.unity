@@ -4971,10 +4971,11 @@ MonoBehaviour:
   continueButton: {fileID: 853697886}
   sizeAdjustmentCanvas: {fileID: 201682200}
   mainCanvas: {fileID: 1844560706}
-  timerText: {fileID: 0}
+  timerText: {fileID: 1548674639}
   menuCanvas: {fileID: 1474514472}
   endingCanvas: {fileID: 197000536}
   confirmDialog: {fileID: 634434622}
+  timeLimit: 123
 --- !u!1 &1796126845
 GameObject:
   m_ObjectHideFlags: 0
@@ -5040,7 +5041,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1844560704
 MonoBehaviour:
   m_ObjectHideFlags: 0
