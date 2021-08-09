@@ -72,7 +72,8 @@ namespace MagicCube
         public void SetCubeSize(int cubeSize)
         {
             _cubeSize.Value = cubeSize;
-            scrambleNum = (_cubeSize.Value*_cubeSize.Value*_cubeSize.Value);
+            // scrambleNum = (_cubeSize.Value*_cubeSize.Value*_cubeSize.Value);
+            scrambleNum = 1;
 
             foreach( EachCubeController eachCube in _eachCubes )
             {
@@ -173,8 +174,7 @@ namespace MagicCube
                 _isRotatingPlane.Value = false;
             }
 
-            // if ( planeData.isNeedUndoLog == true && planeData.isScramble == false ) ほんとはこっち
-            if( planeData.isScramble == false )
+            if ( planeData.isNeedUndoLog == true && planeData.isScramble == false )
             {
                 IsCorrect();
             }

@@ -10,12 +10,14 @@ namespace MagicCube
         private readonly ScreenModel screenModel;
         private readonly ScreenView screenView;
         private readonly CubeModel cubeModel;
+        private readonly CameraView cameraView;
 
-        public ScreenPresenter( ScreenModel screenModel, ScreenView screenView, CubeModel cubeModel )
+        public ScreenPresenter( ScreenModel screenModel, ScreenView screenView, CubeModel cubeModel, CameraView cameraView )
         {
             this.screenModel = screenModel;
             this.screenView = screenView;
             this.cubeModel = cubeModel;
+            this.cameraView = cameraView;
         }
 
         public void Initialize()
@@ -37,7 +39,12 @@ namespace MagicCube
                 .Subscribe( flag => screenView.SetIsRotatingPlane(flag) );
             cubeModel.onFinishScranblePlaneTrigger()
                 .Delay(TimeSpan.FromSeconds(1))
-                .Subscribe( _ => screenView.StartGame() );
+                .Subscribe( _ => screenView.StartGame(cubeModel.cubeSize.Value) );
+            cubeModel.onClearMagicCubeTrigger()
+                .Subscribe( _ => screenView.OnClearMagicCube() );
+
+            cameraView.onFinishedClearedCameraAnimationTrigger()
+                .Subscribe( _ => screenModel.SetScreenType(ScreenType.エンディング画面) );
         }
 
     }

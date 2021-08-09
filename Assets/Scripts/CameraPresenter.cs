@@ -8,12 +8,14 @@ namespace MagicCube
     {
         private readonly CameraView cameraView;
         private readonly CubeView cubeView;
+        private readonly CubeModel cubeModel;
         private readonly ScreenView screenView;
         private readonly ScreenModel screenModel;
 
-        public CameraPresenter( CameraView cameraView, CubeView cubeView, ScreenView screenView, ScreenModel screenModel )
+        public CameraPresenter( CameraView cameraView, CubeView cubeView, CubeModel cubeModel, ScreenView screenView, ScreenModel screenModel )
         {
             this.cameraView = cameraView;
+            this.cubeModel = cubeModel;
             this.cubeView = cubeView;
             this.screenView = screenView;
             this.screenModel = screenModel;
@@ -28,6 +30,9 @@ namespace MagicCube
         {
             cubeView.onSliderValueChangedTrigger()
                 .Subscribe( size => cameraView.OnCubeSizeChanged(size) );
+
+            cubeModel.onClearMagicCubeTrigger()
+                .Subscribe( _ => cameraView.OnClearMagicCube() );
 
             screenView.onButtonDownScreenTrigger()
                 .Subscribe( _ => cameraView.OnDrugScreen() );

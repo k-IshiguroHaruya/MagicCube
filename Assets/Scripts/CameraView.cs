@@ -2,6 +2,7 @@
 using UnityEngine;
 using DG.Tweening;
 using UniRx;
+using System;
 
 namespace MagicCube
 {
@@ -9,10 +10,15 @@ namespace MagicCube
     {
         [SerializeField] private Transform cubeViewTransform;
 
+        private readonly Subject<Unit> _onFinishedClearedCameraAnimationTrigger = new Subject<Unit>();
+        public IObservable<Unit> onFinishedClearedCameraAnimationTrigger() => _onFinishedClearedCameraAnimationTrigger;
+
         private CompositeDisposable disposables;
         private Vector3 positionMargin;
         private Quaternion rotationMargin;
         private Vector3 positionMarginVector;
+        private Vector3 positionGameStart;
+        private Vector3 eulerAnglesGameStart;
         private Axis druggingScreenAxis;
         private bool isRotatingCamera;
         private const float drugCoefficient = 50f;
@@ -30,7 +36,12 @@ namespace MagicCube
         {
             this.transform
                 .DOMove( positionMargin + positionMarginVector * (size-1) * 2f, 0.5f )
-                .SetEase(Ease.OutQuint);
+                .SetEase(Ease.OutQuint)
+                .OnComplete( () =>
+                {
+                    positionGameStart = this.transform.position;
+                    eulerAnglesGameStart = this.transform.eulerAngles;
+                });
         }
 
         public void OnDrugScreen()
@@ -100,6 +111,38 @@ namespace MagicCube
             Camera.main.transform.position += Camera.main.transform.forward * zoom;
         }
 
+        public void OnClearMagicCube()
+        {
+            this.transform
+                .DOMove( positionGameStart, 1f )
+                .SetEase( Ease.InOutQuint );
+            this.transform
+                .DORotate( eulerAnglesGameStart, 1f )
+                .SetEase( Ease.InOutQuint )
+                .OnComplete( () =>
+                {
+                    Vector3 rotateAxis = (this.transform.up + this.transform.right).normalized;
+                    float deltaAngle = 0;
+                    DOTween
+                        .To( () => deltaAngle, (x) => deltaAngle = x, 30, 3f)
+                        .SetEase(Ease.InOutQuint)
+                        .OnUpdate( () => RotateCamera( rotateAxis, deltaAngle ) )
+                        .OnComplete( () =>
+                        {
+                            this.transform
+                                .DOMove( positionGameStart, 0.5f )
+                                .SetEase( Ease.InOutQuint );
+                            this.transform
+                                .DORotate( eulerAnglesGameStart, 0.5f )
+                                .SetEase( Ease.InOutQuint )
+                                .OnComplete( () =>
+                                {
+                                _onFinishedClearedCameraAnimationTrigger.OnNext(Unit.Default);
+                                });
+                        });
+                });
+        }
+
         public void DisposeDrugScreen()
         {
             if (disposables != null)
@@ -107,6 +150,7 @@ namespace MagicCube
                 disposables.Dispose();
             }
         }
+
 
     }
 }

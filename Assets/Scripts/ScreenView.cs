@@ -15,9 +15,9 @@ namespace MagicCube
         [SerializeField] private GameObject timerGameObject;
         [SerializeField] private Text timerText;
         [SerializeField] private Canvas menuCanvas;
+        [SerializeField] private GameObject undoButtonGameObject;
         [SerializeField] private Canvas endingCanvas;
         [SerializeField] private Canvas confirmDialog;
-        [SerializeField] private int timeLimit;
 
         private readonly Subject<Unit> _onStartScreenViewTrigger = new Subject<Unit>();
         public IObservable<Unit> onStartScreenViewTrigger() => _onStartScreenViewTrigger;
@@ -33,6 +33,7 @@ namespace MagicCube
         public IObservable<float> zoom { get => _zoom; }
 
         private CompositeDisposable disposables;
+        private int timeLimit;
         private bool isRotatingPlane;
 
         void Start()
@@ -109,12 +110,27 @@ namespace MagicCube
             }
         }
 
-        public void StartGame()
+        public void StartGame(int cubeSize)
         {
+            timeLimit = (cubeSize*cubeSize*cubeSize) * 50;
             disposables = new CompositeDisposable();
             ObserveMouseButtonDown();
             ObserveMouseScrollWheel();
             StartTimerCountDown();
+        }
+
+        public void OnClearMagicCube()
+        {
+            DisposeObserveMouses();
+            undoButtonGameObject.SetActive(false);
+        }
+
+        public void RestartGameFromEnding()
+        {
+            disposables = new CompositeDisposable();
+            ObserveMouseButtonDown();
+            ObserveMouseScrollWheel();
+            undoButtonGameObject.SetActive(true);
         }
 
         private void ObserveMouseButtonDown()
