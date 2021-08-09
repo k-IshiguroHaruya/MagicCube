@@ -43,7 +43,7 @@ namespace MagicCube
             cubeModel.isRotatingPlane
                 .Subscribe( flag => cubeView.SetIsRotatingPlane(flag) );
             
-            cubeView.onStartCubeViewTrigger()
+            cubeView.onInitCubeTrigger()
                 .Subscribe( transform => cubeModel.SetParentCubeTransform(transform) );
             cubeView.onInitForRotatePlaneTrigger()
                 .Subscribe( transform => cubeModel.SetForRotatePlane(transform) );

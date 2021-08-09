@@ -30,8 +30,8 @@ namespace MagicCube
         [SerializeField] private GameObject eachCubePrefab;
         [SerializeField] private float mouseDeltaThreshold;
 
-        private readonly Subject<Transform> _onStartCubeViewTrigger = new Subject<Transform>();
-        public IObservable<Transform> onStartCubeViewTrigger() => _onStartCubeViewTrigger;
+        private readonly Subject<Transform> _onInitCubeTrigger = new Subject<Transform>();
+        public IObservable<Transform> onInitCubeTrigger() => _onInitCubeTrigger;
         private readonly Subject<Transform> _onInitForRotatePlaneTrigger = new Subject<Transform>();
         public IObservable<Transform> onInitForRotatePlaneTrigger() => _onInitForRotatePlaneTrigger;
         private readonly Subject<int> _onSliderValueChangedTrigger = new Subject<int>();
@@ -61,13 +61,6 @@ namespace MagicCube
         private Vector3 axisVectorOnWorld;
         private Vector3 planeEulerAnglesOnRotateStart;
         private bool isRotatingPlane;
-
-        void Start()
-        {
-            SetSubscribe();
-
-            _onStartCubeViewTrigger.OnNext(this.transform);
-        }
 
         private void SetSubscribe()
         {
@@ -116,7 +109,9 @@ namespace MagicCube
             forRotatePlaneData.transform = new GameObject().transform;
             forRotatePlaneData.transform.parent = this.transform;
             forRotatePlaneData.transform.name = "For Rotate Plane";
+            _onInitCubeTrigger.OnNext(this.transform);
             _onSliderValueChangedTrigger.OnNext( (int)cubeSizeSlider.value );
+            SetSubscribe();
         }
 
         public void OnChangeCubeSize(int cubeSize)
