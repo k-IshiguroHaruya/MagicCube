@@ -73,8 +73,7 @@ namespace MagicCube
         public void SetCubeSize(int cubeSize)
         {
             _cubeSize.Value = cubeSize;
-            // scrambleNum = (_cubeSize.Value*_cubeSize.Value*_cubeSize.Value);
-            scrambleNum = 1;
+            scrambleNum = (_cubeSize.Value*_cubeSize.Value*_cubeSize.Value);
 
             foreach( EachCubeController eachCube in _eachCubes )
             {
