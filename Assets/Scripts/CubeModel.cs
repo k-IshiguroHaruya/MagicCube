@@ -17,6 +17,7 @@ namespace MagicCube
         public Vector3 baseEulerAngles;
         public bool isNeedUndoLog;
         public bool isScramble;
+        public int plusMinus;
     }
 
     public enum Axis
@@ -234,7 +235,7 @@ namespace MagicCube
             planeData.druggingEachCubePosition = _eachCubes[ UnityEngine.Random.Range(0, _eachCubes.Count) ].transform.position;
             planeData.rotatedNum = UnityEngine.Random.Range(1, 4);
             planeData.baseEulerAngles = forRotatePlane.localEulerAngles;
-            planeData.isNeedUndoLog = true;
+            planeData.isNeedUndoLog = false;
             planeData.localRotation = forRotatePlane.localRotation;
 
             SetEachCubesParentPlane(planeData);
@@ -257,7 +258,6 @@ namespace MagicCube
                     return false;
                 }
             }
-            Debug.Log("正解！！");
             _onClearMagicCubeTrigger.OnNext(Unit.Default);
             return true;
         }

@@ -124,20 +124,20 @@ namespace MagicCube
                     Vector3 rotateAxis = (this.transform.up + this.transform.right).normalized;
                     float deltaAngle = 0;
                     DOTween
-                        .To( () => deltaAngle, (x) => deltaAngle = x, 30, 3f)
+                        .To( () => deltaAngle, (x) => deltaAngle = x, 15, 3f)
                         .SetEase(Ease.InOutQuint)
                         .OnUpdate( () => RotateCamera( rotateAxis, deltaAngle ) )
                         .OnComplete( () =>
                         {
                             this.transform
-                                .DOMove( positionGameStart, 0.5f )
-                                .SetEase( Ease.InOutQuint );
+                                .DOMove( positionGameStart, 1.5f )
+                                .SetEase( Ease.OutQuint );
                             this.transform
-                                .DORotate( eulerAnglesGameStart, 0.5f )
-                                .SetEase( Ease.InOutQuint )
+                                .DORotate( eulerAnglesGameStart, 1.5f )
+                                .SetEase( Ease.OutQuint )
                                 .OnComplete( () =>
                                 {
-                                _onFinishedClearedCameraAnimationTrigger.OnNext(Unit.Default);
+                                    _onFinishedClearedCameraAnimationTrigger.OnNext(Unit.Default);
                                 });
                         });
                 });

@@ -193,7 +193,7 @@ namespace MagicCube
                     {
                         foreach( DruggingEachCubeAxisData data in druggingEachCubeAxisDatas )
                         {
-                            if( (Vector2.Dot(data.screenVector.normalized, mouseVector.normalized) * mouseVector).magnitude - data.screenVector.magnitude >= 1f )
+                            if( (Vector2.Dot(data.screenVector.normalized, mouseVector.normalized) * mouseVector * 3f).magnitude - data.screenVector.magnitude >= 1f )
                             {
                                 _onToggleIsRotatingPlaneTrigger.OnNext(true);
                                 druggingEachCubeAxisVectorOnScreen = data.screenVector;

@@ -14,10 +14,14 @@ namespace MagicCube
         [SerializeField] private Canvas mainCanvas;
         [SerializeField] private GameObject timerGameObject;
         [SerializeField] private Text timerText;
-        [SerializeField] private Canvas menuCanvas;
+        [SerializeField] private MenuController menu;
+        [SerializeField] private Button menuButton;
+        [SerializeField] private Toggle timerToggle;
         [SerializeField] private GameObject undoButtonGameObject;
         [SerializeField] private Canvas endingCanvas;
-        [SerializeField] private Canvas confirmDialog;
+        [SerializeField] private Text endingTitle;
+        [SerializeField] private Text leftTimeText;
+        [SerializeField] private ConfirmDialogController confirmDialogController;
 
         private readonly Subject<Unit> _onStartScreenViewTrigger = new Subject<Unit>();
         public IObservable<Unit> onStartScreenViewTrigger() => _onStartScreenViewTrigger;
@@ -35,6 +39,7 @@ namespace MagicCube
         private CompositeDisposable disposables;
         private int timeLimit;
         private bool isRotatingPlane;
+        private bool isClearMagicCube;
 
         void Start()
         {
@@ -57,38 +62,57 @@ namespace MagicCube
             {
                 case ScreenType.ホーム画面:
                     homeCanvas.gameObject.SetActive(true);
-                    confirmDialog.gameObject.SetActive(false);
+                    confirmDialogController.gameObject.SetActive(false);
                     sizeAdjustmentCanvas.gameObject.SetActive(false);
                     mainCanvas.gameObject.SetActive(false);
-                    menuCanvas.gameObject.SetActive(false);
                     endingCanvas.gameObject.SetActive(false);
+                    menuButton.gameObject.SetActive(false);
+                    undoButtonGameObject.SetActive(false);
                     
                     timerGameObject.SetActive(false);
+                    isClearMagicCube = false;
+                    ResetData();
                     break;
                 case ScreenType.キューブサイズ調整画面:
                     homeCanvas.gameObject.SetActive(false);
                     sizeAdjustmentCanvas.gameObject.SetActive(true);
                     mainCanvas.gameObject.SetActive(false);
-                    menuCanvas.gameObject.SetActive(false);
                     endingCanvas.gameObject.SetActive(false);
+                    menuButton.gameObject.SetActive(false);
+                    confirmDialogController.gameObject.SetActive(false);
+                    undoButtonGameObject.SetActive(false);
+                    ResetData();
                     break;
                 case ScreenType.メイン画面:
                     homeCanvas.gameObject.SetActive(false);
                     sizeAdjustmentCanvas.gameObject.SetActive(false);
                     mainCanvas.gameObject.SetActive(true);
+                    menuButton.gameObject.SetActive(true);
+                    undoButtonGameObject.SetActive(true);
                     break;
                 case ScreenType.エンディング画面:
                     mainCanvas.gameObject.SetActive(false);
                     endingCanvas.gameObject.SetActive(true);
+                    menuButton.gameObject.SetActive(false);
+                    SetEndingTexts();
                     break;
             }
         }
 
-        public void DisplayConfirmDialog()
+        public void ToggleActiveTimerGameObject()
         {
-            confirmDialog.gameObject.SetActive(true);
+            timerGameObject.SetActive(timerToggle.isOn);
         }
-
+        public void OnClickMenuButton()
+        {
+            menuButton.gameObject.SetActive(false);
+            menu.OpenMenu();
+        }
+        public void OnClickCloseMenuButton()
+        {
+            menuButton.gameObject.SetActive(true);
+            menu.CloseMenu();
+        }
         public void OnClickStartButton()
         {
             _onApplyChangeScreenTypeTrigger.OnNext(ScreenType.キューブサイズ調整画面);
@@ -101,18 +125,65 @@ namespace MagicCube
         {
             _onApplyChangeScreenTypeTrigger.OnNext(ScreenType.ホーム画面);
         }
+        public void OnClickRestartButtonOnMenu()
+        {
+            confirmDialogController.gameObject.SetActive(true);
+            confirmDialogController.SetUI
+            ( 
+                title: "ゲームをリスタートしますか?",
+                yesButtonAction: () =>
+                {
+                    menu.CloseMenu();
+                    OnClickStartButton();
+                },
+                yesButtonText: "はい",
+                noButtonAction: () => confirmDialogController.gameObject.SetActive(false),
+                noButtonText: "いいえ"
+            );
+        }
+        public void OnClickBackTitleButtonOnMenu()
+        {
+            confirmDialogController.gameObject.SetActive(true);
+            confirmDialogController.SetUI
+            ( 
+                title: "タイトル画面に戻りますか?",
+                yesButtonAction: () =>
+                {
+                    menu.CloseMenu();
+                    OnClickBackTitleButton();
+                },
+                yesButtonText: "はい",
+                noButtonAction: () => confirmDialogController.gameObject.SetActive(false),
+                noButtonText: "いいえ"
+            );
+        }
+        public void OnClickConfirmDialogBackground()
+        {
+            confirmDialogController.gameObject.SetActive(false);
+        }
 
-        private void DisposeObserveMouses()
+        public void RestartGameFromEnding()
+        {
+            _onApplyChangeScreenTypeTrigger.OnNext(ScreenType.キューブサイズ調整画面);
+        }
+
+        public void OnClickCloseEndingButton()
+        {
+            endingCanvas.gameObject.SetActive(false);
+        }
+
+        private void ResetData()
         {
             if ( disposables != null )
             {
                 disposables.Dispose();
             }
+            timeLimit = 0;
         }
 
         public void StartGame(int cubeSize)
         {
-            timeLimit = (cubeSize*cubeSize*cubeSize) * 50;
+            timeLimit = (cubeSize*cubeSize*cubeSize) * 200;
             disposables = new CompositeDisposable();
             ObserveMouseButtonDown();
             ObserveMouseScrollWheel();
@@ -121,16 +192,21 @@ namespace MagicCube
 
         public void OnClearMagicCube()
         {
-            DisposeObserveMouses();
-            undoButtonGameObject.SetActive(false);
+            isClearMagicCube = true;
         }
 
-        public void RestartGameFromEnding()
+        private void SetEndingTexts()
         {
-            disposables = new CompositeDisposable();
-            ObserveMouseButtonDown();
-            ObserveMouseScrollWheel();
-            undoButtonGameObject.SetActive(true);
+            if( isClearMagicCube == true )
+            {
+                endingTitle.text = "おめでとう!!";
+                leftTimeText.text = "残り時間" + timerText.text;
+            }
+            else
+            {
+                endingTitle.text = "残念、時間切れだ";
+                leftTimeText.text = "";
+            }
         }
 
         private void ObserveMouseButtonDown()
@@ -169,8 +245,11 @@ namespace MagicCube
         }
 
         private void StartTimerCountDown()
-        {            
+        {
+            timerGameObject.SetActive(true);
+            
             int countDownTime = timeLimit;
+            int hour;
             int minutes;
             int seconds;
 
@@ -179,10 +258,10 @@ namespace MagicCube
                 .TakeWhile( _ => countDownTime > 0 )
                 .Subscribe( _ =>
                 {
-                    timerGameObject.SetActive(true);
-                    minutes = countDownTime / 60;
-                    seconds = countDownTime - minutes * 60;
-                    timerText.text = string.Format( "{0:00}:{1:00}", minutes, seconds );
+                    hour = countDownTime / 3600;
+                    minutes = (countDownTime - hour * 3600) / 60;
+                    seconds = countDownTime - hour * 3600 - minutes * 60;
+                    timerText.text = string.Format( "{0}:{1:00}:{2:00}", hour, minutes, seconds );
                     countDownTime --;
                 }, () =>
                 {
