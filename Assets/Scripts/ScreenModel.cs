@@ -1,5 +1,8 @@
 ﻿
 using UniRx;
+using UnityEngine;
+using System;
+using System.Collections.Generic;
 
 namespace MagicCube
 {
@@ -13,8 +16,21 @@ namespace MagicCube
 
     public class ScreenModel
     {
-        private readonly ReactiveProperty<ScreenType> _screenType = new ReactiveProperty<ScreenType>( ScreenType.キューブサイズ調整画面 );
+        private readonly ReactiveProperty<ScreenType> _screenType = new ReactiveProperty<ScreenType>( ScreenType.ホーム画面 );
         public IReadOnlyReactiveProperty<ScreenType> screenType { get => _screenType; }
+
+        private List<PlaneData> lastGameData = new List<PlaneData>();
+
+        public ScreenModel()
+        {
+            // ここで前回の続きがあるかどうかをみる
+            lastGameData = new List<PlaneData>();
+        }
+
+        public bool GetIsLastGameData()
+        {
+            return lastGameData.Count != 0;
+        }
 
         public void SetScreenType(ScreenType screenType)
         {

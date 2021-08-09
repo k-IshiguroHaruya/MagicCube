@@ -28,6 +28,8 @@ namespace MagicCube
             screenModel.screenType
                 .Subscribe( screenType => screenView.ChangeScreen(screenType) );
             
+            screenView.onStartScreenViewTrigger()
+                .Subscribe( _ => screenView.SetActiveHomeContinueButton( screenModel.GetIsLastGameData() ) );
             screenView.onClickStartGameButtonTrigger()
                 .Subscribe( screenType => screenModel.SetScreenType(screenType) );
 
